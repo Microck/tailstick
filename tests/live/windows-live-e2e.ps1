@@ -26,6 +26,43 @@ function Invoke-TailscaleApi([string]$Method, [string]$Uri, [hashtable]$Headers,
   Invoke-RestMethod -Method $Method -Uri $Uri -Headers $Headers -TimeoutSec $TimeoutSec
 }
 
+function Invoke-NativeCommand([string]$Label, [string]$FilePath, [string[]]$ArgumentList, [int]$TimeoutSec = 180) {
+  $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ("tailstick-live-" + [Guid]::NewGuid().ToString("N") + ".stdout.log")
+  $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("tailstick-live-" + [Guid]::NewGuid().ToString("N") + ".stderr.log")
+  $process = $null
+
+  try {
+    $process = Start-Process -FilePath $FilePath `
+      -ArgumentList $ArgumentList `
+      -RedirectStandardOutput $stdoutPath `
+      -RedirectStandardError $stderrPath `
+      -NoNewWindow `
+      -PassThru
+
+    try {
+      $process | Wait-Process -Timeout $TimeoutSec -ErrorAction Stop
+    } catch {
+      if ($null -ne $process -and -not $process.HasExited) {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+      }
+      throw "$Label timed out after $TimeoutSec seconds"
+    }
+
+    $process.Refresh()
+    $stdout = if (Test-Path $stdoutPath) { Get-Content -Path $stdoutPath -Raw } else { "" }
+    $stderr = if (Test-Path $stderrPath) { Get-Content -Path $stderrPath -Raw } else { "" }
+    $combined = ($stdout + $stderr).Trim()
+
+    if ($process.ExitCode -ne 0) {
+      throw "$Label failed with exit code $($process.ExitCode): $combined"
+    }
+
+    return $combined
+  } finally {
+    Remove-Item -Path $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+  }
+}
+
 function Wait-ForDeviceGone([string]$DeviceId, [hashtable]$Headers) {
   for ($i = 0; $i -lt 30; $i++) {
     try {
@@ -100,20 +137,18 @@ $config | Set-Content -Path $configPath -Encoding UTF8
 
 try {
   Write-Host "windows-live-e2e: enrolling session lease"
-  $runOutput = ((& $bin run `
-    --config $configPath `
-    --state $statePath `
-    --log $logPath `
-    --audit $auditPath `
-    --preset live-e2e-windows `
-    --mode session `
-    --channel latest `
-    --allow-existing `
-    --password $env:TAILSTICK_OPERATOR_PASSWORD 2>&1) | Out-String).Trim()
-
-  if ($LASTEXITCODE -ne 0) {
-    throw "run command failed: $runOutput"
-  }
+  $runOutput = Invoke-NativeCommand -Label "run command" -FilePath $bin -ArgumentList @(
+    "run",
+    "--config", $configPath,
+    "--state", $statePath,
+    "--log", $logPath,
+    "--audit", $auditPath,
+    "--preset", "live-e2e-windows",
+    "--mode", "session",
+    "--channel", "latest",
+    "--allow-existing",
+    "--password", $env:TAILSTICK_OPERATOR_PASSWORD
+  ) -TimeoutSec 180
 
   $state = Get-Content -Path $statePath -Raw | ConvertFrom-Json
   $record = $state.records | Select-Object -First 1
@@ -147,16 +182,14 @@ try {
   }
 
   Write-Host "windows-live-e2e: forcing cleanup for lease $($record.leaseId)"
-  $cleanupOutput = ((& $bin cleanup `
-    --config $configPath `
-    --state $statePath `
-    --log $logPath `
-    --audit $auditPath `
-    --lease-id $record.leaseId 2>&1) | Out-String).Trim()
-
-  if ($LASTEXITCODE -ne 0) {
-    throw "cleanup command failed: $cleanupOutput"
-  }
+  $cleanupOutput = Invoke-NativeCommand -Label "cleanup command" -FilePath $bin -ArgumentList @(
+    "cleanup",
+    "--config", $configPath,
+    "--state", $statePath,
+    "--log", $logPath,
+    "--audit", $auditPath,
+    "--lease-id", $record.leaseId
+  ) -TimeoutSec 180
 
   $stateAfterCleanup = Get-Content -Path $statePath -Raw | ConvertFrom-Json
   $recordAfterCleanup = $stateAfterCleanup.records | Select-Object -First 1
@@ -172,16 +205,14 @@ try {
   $deviceId = $null
 
   Write-Host "windows-live-e2e: running agent self-removal"
-  $agentOutput = ((& $bin agent `
-    --once `
-    --config $configPath `
-    --state $statePath `
-    --log $logPath `
-    --audit $auditPath 2>&1) | Out-String).Trim()
-
-  if ($LASTEXITCODE -ne 0) {
-    throw "agent --once command failed: $agentOutput"
-  }
+  $agentOutput = Invoke-NativeCommand -Label "agent command" -FilePath $bin -ArgumentList @(
+    "agent",
+    "--once",
+    "--config", $configPath,
+    "--state", $statePath,
+    "--log", $logPath,
+    "--audit", $auditPath
+  ) -TimeoutSec 120
 
   Assert-TaskMissing "TailStickAgent-Startup"
   Assert-TaskMissing "TailStickAgent-Periodic"
