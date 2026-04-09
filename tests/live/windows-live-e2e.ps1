@@ -14,16 +14,30 @@ function Get-BasicAuthHeader([string]$ApiKey) {
   }
 }
 
+function Get-HttpStatusCode($ErrorRecord) {
+  if ($null -eq $ErrorRecord -or $null -eq $ErrorRecord.Exception -or $null -eq $ErrorRecord.Exception.Response) {
+    return $null
+  }
+
+  return $ErrorRecord.Exception.Response.StatusCode.value__
+}
+
+function Invoke-TailscaleApi([string]$Method, [string]$Uri, [hashtable]$Headers, [int]$TimeoutSec = 15) {
+  Invoke-RestMethod -Method $Method -Uri $Uri -Headers $Headers -TimeoutSec $TimeoutSec
+}
+
 function Wait-ForDeviceGone([string]$DeviceId, [hashtable]$Headers) {
   for ($i = 0; $i -lt 30; $i++) {
     try {
-      Invoke-RestMethod -Method Get -Uri "https://api.tailscale.com/api/v2/device/$DeviceId" -Headers $Headers | Out-Null
+      Invoke-TailscaleApi -Method Get -Uri "https://api.tailscale.com/api/v2/device/$DeviceId" -Headers $Headers | Out-Null
+      Write-Host "windows-live-e2e: device $DeviceId still visible, retry $($i + 1)/30"
       Start-Sleep -Seconds 2
     } catch {
-      $statusCode = $_.Exception.Response.StatusCode.value__
+      $statusCode = Get-HttpStatusCode $_
       if ($statusCode -eq 404) {
         return
       }
+      Write-Host "windows-live-e2e: device check retry $($i + 1)/30 failed with status=$statusCode"
       Start-Sleep -Seconds 2
     }
   }
@@ -85,6 +99,7 @@ $config = @'
 $config | Set-Content -Path $configPath -Encoding UTF8
 
 try {
+  Write-Host "windows-live-e2e: enrolling session lease"
   $runOutput = ((& $bin run `
     --config $configPath `
     --state $statePath `
@@ -118,7 +133,8 @@ try {
     throw "credential ref missing or unreadable"
   }
 
-  Invoke-RestMethod -Method Get -Uri "https://api.tailscale.com/api/v2/device/$deviceId" -Headers $headers | Out-Null
+  Write-Host "windows-live-e2e: verifying device $deviceId exists"
+  Invoke-TailscaleApi -Method Get -Uri "https://api.tailscale.com/api/v2/device/$deviceId" -Headers $headers | Out-Null
 
   Assert-TaskExists "TailStickAgent-Startup"
   Assert-TaskExists "TailStickAgent-Periodic"
@@ -130,6 +146,7 @@ try {
     throw "expected agent launcher at $agentLauncherPath"
   }
 
+  Write-Host "windows-live-e2e: forcing cleanup for lease $($record.leaseId)"
   $cleanupOutput = ((& $bin cleanup `
     --config $configPath `
     --state $statePath `
@@ -150,9 +167,11 @@ try {
     throw "credential ref should be removed after cleanup"
   }
 
+  Write-Host "windows-live-e2e: waiting for device $deviceId deletion"
   Wait-ForDeviceGone -DeviceId $deviceId -Headers $headers
   $deviceId = $null
 
+  Write-Host "windows-live-e2e: running agent self-removal"
   $agentOutput = ((& $bin agent `
     --once `
     --config $configPath `
@@ -179,7 +198,7 @@ try {
 } finally {
   if (-not [string]::IsNullOrWhiteSpace($deviceId)) {
     try {
-      Invoke-RestMethod -Method Delete -Uri "https://api.tailscale.com/api/v2/device/$deviceId" -Headers $headers | Out-Null
+      Invoke-TailscaleApi -Method Delete -Uri "https://api.tailscale.com/api/v2/device/$deviceId" -Headers $headers | Out-Null
     } catch {
     }
   }
