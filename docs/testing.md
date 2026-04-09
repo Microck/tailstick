@@ -14,12 +14,12 @@ File: `.github/workflows/live-e2e.yml`
 
 This workflow is manual by design (`workflow_dispatch`) and uses real Tailscale credentials stored as GitHub Actions secrets:
 
-- `TAILSTICK_LIVE_E2E_AUTH_KEY`
-- `TAILSTICK_LIVE_E2E_EPHEMERAL_AUTH_KEY`
 - `TAILSTICK_LIVE_E2E_API_KEY`
 - `TAILSTICK_LIVE_E2E_OPERATOR_PASSWORD`
 
 It is intentionally separate from the default CI matrix because it creates real tailnet devices and performs real cleanup/delete operations.
+
+Each live lane mints a short-lived auth key from the Tailscale API at runtime so the workflow does not depend on long-lived or previously-consumed auth keys.
 
 ### Linux Live E2E
 

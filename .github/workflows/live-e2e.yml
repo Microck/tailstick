@@ -63,9 +63,26 @@ jobs:
           docker exec tailstick-live-e2e bash -lc 'ls -la /run || true'
           exit 1
 
+      - name: Create Linux live auth key
+        id: linux-key
+        env:
+          TAILSTICK_API_KEY: ${{ secrets.TAILSTICK_LIVE_E2E_API_KEY }}
+        run: |
+          response="$(
+            curl -fsS -u "${TAILSTICK_API_KEY}:" \
+              -H 'Content-Type: application/json' \
+              -d '{"capabilities":{"devices":{"create":{"reusable":false,"ephemeral":false,"preauthorized":true}}},"expirySeconds":3600,"description":"linux live e2e"}' \
+              https://api.tailscale.com/api/v2/tailnet/-/keys
+          )"
+          auth_key="$(printf '%s' "$response" | jq -r '.key')"
+          test -n "$auth_key"
+          test "$auth_key" != "null"
+          echo "::add-mask::$auth_key"
+          echo "auth_key=$auth_key" >> "$GITHUB_OUTPUT"
+
       - name: Run Linux live E2E
         env:
-          TAILSTICK_AUTH_KEY: ${{ secrets.TAILSTICK_LIVE_E2E_AUTH_KEY }}
+          TAILSTICK_AUTH_KEY: ${{ steps.linux-key.outputs.auth_key }}
           TAILSTICK_API_KEY: ${{ secrets.TAILSTICK_LIVE_E2E_API_KEY }}
           TAILSTICK_OPERATOR_PASSWORD: ${{ secrets.TAILSTICK_LIVE_E2E_OPERATOR_PASSWORD }}
           TAILSTICK_BIN: /src/dist/tailstick-linux-cli
@@ -82,9 +99,9 @@ jobs:
         if: failure()
         run: |
           docker exec tailstick-live-e2e bash -lc 'journalctl --no-pager || true'
-          docker exec tailstick-live-e2e bash -lc 'cat /tmp/tailstick-live-e2e/tailscaled.log || true'
-          docker exec tailstick-live-e2e bash -lc 'cat /tmp/tailstick-live-e2e/tailstick.log || true'
-          docker exec tailstick-live-e2e bash -lc 'cat /tmp/tailstick-live-e2e/state.json || true'
+          docker exec tailstick-live-e2e bash -lc 'cat /var/tmp/tailstick-live-e2e/tailscaled.log || true'
+          docker exec tailstick-live-e2e bash -lc 'cat /var/tmp/tailstick-live-e2e/tailstick.log || true'
+          docker exec tailstick-live-e2e bash -lc 'cat /var/tmp/tailstick-live-e2e/state.json || true'
 
       - name: Stop isolated Linux container
         if: always()
@@ -118,10 +135,41 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_PATH -Value $tailscalePath
 
+      - name: Create Windows live auth key
+        id: windows-key
+        shell: pwsh
+        env:
+          TAILSTICK_API_KEY: ${{ secrets.TAILSTICK_LIVE_E2E_API_KEY }}
+        run: |
+          $tokenBytes = [System.Text.Encoding]::ASCII.GetBytes("${env:TAILSTICK_API_KEY}:")
+          $headers = @{
+            Authorization = "Basic $([Convert]::ToBase64String($tokenBytes))"
+            "Content-Type" = "application/json"
+          }
+          $body = @{
+            capabilities = @{
+              devices = @{
+                create = @{
+                  reusable = $false
+                  ephemeral = $true
+                  preauthorized = $true
+                }
+              }
+            }
+            expirySeconds = 3600
+            description = "windows live e2e"
+          } | ConvertTo-Json -Depth 5 -Compress
+          $response = Invoke-RestMethod -Method Post -Uri "https://api.tailscale.com/api/v2/tailnet/-/keys" -Headers $headers -Body $body
+          if ([string]::IsNullOrWhiteSpace($response.key)) {
+            throw "failed to create ephemeral auth key for windows live E2E"
+          }
+          Write-Host "::add-mask::$($response.key)"
+          "ephemeral_auth_key=$($response.key)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
       - name: Run Windows live E2E
         shell: pwsh
         env:
-          TAILSTICK_EPHEMERAL_AUTH_KEY: ${{ secrets.TAILSTICK_LIVE_E2E_EPHEMERAL_AUTH_KEY }}
+          TAILSTICK_EPHEMERAL_AUTH_KEY: ${{ steps.windows-key.outputs.ephemeral_auth_key }}
           TAILSTICK_API_KEY: ${{ secrets.TAILSTICK_LIVE_E2E_API_KEY }}
           TAILSTICK_OPERATOR_PASSWORD: ${{ secrets.TAILSTICK_LIVE_E2E_OPERATOR_PASSWORD }}
         run: ./tests/live/windows-live-e2e.ps1

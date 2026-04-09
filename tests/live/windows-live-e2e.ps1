@@ -14,21 +14,126 @@ function Get-BasicAuthHeader([string]$ApiKey) {
   }
 }
 
+function Get-HttpStatusCode($ErrorRecord) {
+  if ($null -eq $ErrorRecord -or $null -eq $ErrorRecord.Exception -or $null -eq $ErrorRecord.Exception.Response) {
+    return $null
+  }
+
+  return $ErrorRecord.Exception.Response.StatusCode.value__
+}
+
+function Invoke-TailscaleApi([string]$Method, [string]$Uri, [hashtable]$Headers, [int]$TimeoutSec = 15) {
+  Invoke-RestMethod -Method $Method -Uri $Uri -Headers $Headers -TimeoutSec $TimeoutSec
+}
+
+function Invoke-NativeCommand([string]$Label, [string]$FilePath, [string[]]$ArgumentList, [int]$TimeoutSec = 180) {
+  $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ("tailstick-live-" + [Guid]::NewGuid().ToString("N") + ".stdout.log")
+  $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ("tailstick-live-" + [Guid]::NewGuid().ToString("N") + ".stderr.log")
+  $process = $null
+
+  try {
+    $process = Start-Process -FilePath $FilePath `
+      -ArgumentList $ArgumentList `
+      -RedirectStandardOutput $stdoutPath `
+      -RedirectStandardError $stderrPath `
+      -NoNewWindow `
+      -PassThru
+
+    try {
+      $process | Wait-Process -Timeout $TimeoutSec -ErrorAction Stop
+    } catch {
+      if ($null -ne $process -and -not $process.HasExited) {
+        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+      }
+      throw "$Label timed out after $TimeoutSec seconds"
+    }
+
+    $process.Refresh()
+    $stdout = if (Test-Path $stdoutPath) { Get-Content -Path $stdoutPath -Raw } else { "" }
+    $stderr = if (Test-Path $stderrPath) { Get-Content -Path $stderrPath -Raw } else { "" }
+    $combined = ($stdout + $stderr).Trim()
+
+    if ($process.ExitCode -ne 0) {
+      throw "$Label failed with exit code $($process.ExitCode): $combined"
+    }
+
+    return $combined
+  } finally {
+    Remove-Item -Path $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+  }
+}
+
 function Wait-ForDeviceGone([string]$DeviceId, [hashtable]$Headers) {
   for ($i = 0; $i -lt 30; $i++) {
     try {
-      Invoke-RestMethod -Method Get -Uri "https://api.tailscale.com/api/v2/device/$DeviceId" -Headers $Headers | Out-Null
+      Invoke-TailscaleApi -Method Get -Uri "https://api.tailscale.com/api/v2/device/$DeviceId" -Headers $Headers | Out-Null
+      Write-Host "windows-live-e2e: device $DeviceId still visible, retry $($i + 1)/30"
       Start-Sleep -Seconds 2
     } catch {
-      $statusCode = $_.Exception.Response.StatusCode.value__
+      $statusCode = Get-HttpStatusCode $_
       if ($statusCode -eq 404) {
         return
       }
+      Write-Host "windows-live-e2e: device check retry $($i + 1)/30 failed with status=$statusCode"
       Start-Sleep -Seconds 2
     }
   }
 
   throw "device $DeviceId still exists after cleanup"
+}
+
+function Assert-TaskExists([string]$TaskName) {
+  $queryOutput = (& schtasks /Query /TN $TaskName 2>&1 | Out-String).Trim()
+  if ($LASTEXITCODE -ne 0) {
+    throw "expected scheduled task $TaskName to exist: $queryOutput"
+  }
+}
+
+function Assert-TaskMissing([string]$TaskName) {
+  $queryOutput = (& schtasks /Query /TN $TaskName 2>&1 | Out-String).Trim()
+  if ($LASTEXITCODE -eq 0) {
+    throw "scheduled task $TaskName still exists: $queryOutput"
+  }
+}
+
+function Wait-ForTaskExists([string]$TaskName, [int]$Retries = 10, [int]$DelaySec = 2) {
+  for ($i = 0; $i -lt $Retries; $i++) {
+    $queryOutput = (& schtasks /Query /TN $TaskName 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -eq 0) {
+      return
+    }
+    Write-Host "windows-live-e2e: task $TaskName not visible yet, retry $($i + 1)/$Retries"
+    Start-Sleep -Seconds $DelaySec
+  }
+
+  Assert-TaskExists $TaskName
+}
+
+function Wait-ForTaskMissing([string]$TaskName, [int]$Retries = 10, [int]$DelaySec = 2) {
+  for ($i = 0; $i -lt $Retries; $i++) {
+    $queryOutput = (& schtasks /Query /TN $TaskName 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) {
+      return
+    }
+    Write-Host "windows-live-e2e: task $TaskName still present, retry $($i + 1)/$Retries"
+    Start-Sleep -Seconds $DelaySec
+  }
+
+  Assert-TaskMissing $TaskName
+}
+
+function Wait-ForPathMissing([string]$Path, [string]$Label, [int]$Retries = 15, [int]$DelaySec = 2) {
+  for ($i = 0; $i -lt $Retries; $i++) {
+    if (-not (Test-Path $Path)) {
+      return
+    }
+    Write-Host "windows-live-e2e: $Label still present at $Path, retry $($i + 1)/$Retries"
+    Start-Sleep -Seconds $DelaySec
+  }
+
+  if (Test-Path $Path) {
+    throw "$Label still exists after self-removal"
+  }
 }
 
 Require-Env "TAILSTICK_EPHEMERAL_AUTH_KEY"
@@ -44,6 +149,7 @@ $logPath = Join-Path $workDir "tailstick.log"
 $auditPath = Join-Path $workDir "audit.ndjson"
 $programDataRoot = if ($env:ProgramData) { $env:ProgramData } else { "C:\ProgramData" }
 $agentBinaryPath = Join-Path $programDataRoot "TailStick\tailstick-agent.exe"
+$agentLauncherPath = Join-Path $programDataRoot "TailStick\agent.cmd"
 $headers = Get-BasicAuthHeader $env:TAILSTICK_API_KEY
 $deviceId = $null
 
@@ -70,20 +176,19 @@ $config = @'
 $config | Set-Content -Path $configPath -Encoding UTF8
 
 try {
-  $runOutput = ((& $bin run `
-    --config $configPath `
-    --state $statePath `
-    --log $logPath `
-    --audit $auditPath `
-    --preset live-e2e-windows `
-    --mode session `
-    --channel latest `
-    --allow-existing `
-    --password $env:TAILSTICK_OPERATOR_PASSWORD 2>&1) | Out-String).Trim()
-
-  if ($LASTEXITCODE -ne 0) {
-    throw "run command failed: $runOutput"
-  }
+  Write-Host "windows-live-e2e: enrolling session lease"
+  $runOutput = Invoke-NativeCommand -Label "run command" -FilePath $bin -ArgumentList @(
+    "run",
+    "--config", $configPath,
+    "--state", $statePath,
+    "--log", $logPath,
+    "--audit", $auditPath,
+    "--preset", "live-e2e-windows",
+    "--mode", "session",
+    "--channel", "latest",
+    "--allow-existing",
+    "--password", $env:TAILSTICK_OPERATOR_PASSWORD
+  ) -TimeoutSec 180
 
   $state = Get-Content -Path $statePath -Raw | ConvertFrom-Json
   $record = $state.records | Select-Object -First 1
@@ -103,25 +208,28 @@ try {
     throw "credential ref missing or unreadable"
   }
 
-  Invoke-RestMethod -Method Get -Uri "https://api.tailscale.com/api/v2/device/$deviceId" -Headers $headers | Out-Null
+  Write-Host "windows-live-e2e: verifying device $deviceId exists"
+  Invoke-TailscaleApi -Method Get -Uri "https://api.tailscale.com/api/v2/device/$deviceId" -Headers $headers | Out-Null
 
-  Get-ScheduledTask -TaskName "TailStickAgent-Startup" | Out-Null
-  Get-ScheduledTask -TaskName "TailStickAgent-Periodic" | Out-Null
+  Wait-ForTaskExists "TailStickAgent-Startup"
+  Wait-ForTaskExists "TailStickAgent-Periodic"
 
   if (-not (Test-Path $agentBinaryPath)) {
     throw "expected agent binary at $agentBinaryPath"
   }
-
-  $cleanupOutput = ((& $bin cleanup `
-    --config $configPath `
-    --state $statePath `
-    --log $logPath `
-    --audit $auditPath `
-    --lease-id $record.leaseId 2>&1) | Out-String).Trim()
-
-  if ($LASTEXITCODE -ne 0) {
-    throw "cleanup command failed: $cleanupOutput"
+  if (-not (Test-Path $agentLauncherPath)) {
+    throw "expected agent launcher at $agentLauncherPath"
   }
+
+  Write-Host "windows-live-e2e: forcing cleanup for lease $($record.leaseId)"
+  $cleanupOutput = Invoke-NativeCommand -Label "cleanup command" -FilePath $bin -ArgumentList @(
+    "cleanup",
+    "--config", $configPath,
+    "--state", $statePath,
+    "--log", $logPath,
+    "--audit", $auditPath,
+    "--lease-id", $record.leaseId
+  ) -TimeoutSec 180
 
   $stateAfterCleanup = Get-Content -Path $statePath -Raw | ConvertFrom-Json
   $recordAfterCleanup = $stateAfterCleanup.records | Select-Object -First 1
@@ -132,38 +240,34 @@ try {
     throw "credential ref should be removed after cleanup"
   }
 
+  Write-Host "windows-live-e2e: waiting for device $deviceId deletion"
   Wait-ForDeviceGone -DeviceId $deviceId -Headers $headers
   $deviceId = $null
 
-  $agentOutput = ((& $bin agent `
-    --once `
-    --config $configPath `
-    --state $statePath `
-    --log $logPath `
-    --audit $auditPath 2>&1) | Out-String).Trim()
+  Write-Host "windows-live-e2e: running agent self-removal"
+  $agentOutput = Invoke-NativeCommand -Label "agent command" -FilePath $bin -ArgumentList @(
+    "agent",
+    "--once",
+    "--config", $configPath,
+    "--state", $statePath,
+    "--log", $logPath,
+    "--audit", $auditPath
+  ) -TimeoutSec 120
 
-  if ($LASTEXITCODE -ne 0) {
-    throw "agent --once command failed: $agentOutput"
-  }
+  Wait-ForTaskMissing "TailStickAgent-Startup"
+  Wait-ForTaskMissing "TailStickAgent-Periodic"
 
-  if ($null -ne (Get-ScheduledTask -TaskName "TailStickAgent-Startup" -ErrorAction SilentlyContinue)) {
-    throw "startup task still exists after self-removal"
-  }
-  if ($null -ne (Get-ScheduledTask -TaskName "TailStickAgent-Periodic" -ErrorAction SilentlyContinue)) {
-    throw "periodic task still exists after self-removal"
-  }
-
-  Start-Sleep -Seconds 5
-  if (Test-Path $agentBinaryPath) {
-    throw "agent binary still exists after self-removal"
-  }
+  Wait-ForPathMissing -Path $agentBinaryPath -Label "agent binary"
+  Wait-ForPathMissing -Path $agentLauncherPath -Label "agent launcher"
 
   Write-Host "windows-live-e2e: PASS"
 } finally {
   if (-not [string]::IsNullOrWhiteSpace($deviceId)) {
     try {
-      Invoke-RestMethod -Method Delete -Uri "https://api.tailscale.com/api/v2/device/$deviceId" -Headers $headers | Out-Null
+      Invoke-TailscaleApi -Method Delete -Uri "https://api.tailscale.com/api/v2/device/$deviceId" -Headers $headers | Out-Null
     } catch {
     }
   }
 }
+
+exit 0

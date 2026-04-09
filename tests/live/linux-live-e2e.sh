@@ -37,7 +37,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 TAILSTICK_BIN="${TAILSTICK_BIN:-/src/dist/tailstick-linux-cli}"
-WORKDIR="/tmp/tailstick-live-e2e"
+WORKDIR="/var/tmp/tailstick-live-e2e"
 CONFIG_PATH="$WORKDIR/tailstick.config.json"
 STATE_PATH="$WORKDIR/state.json"
 LOG_PATH="$WORKDIR/tailstick.log"
@@ -71,19 +71,22 @@ curl -fsSL https://tailscale.com/install.sh | sh
 REAL_TAILSCALE="$(command -v tailscale)"
 REAL_TAILSCALED="$(command -v tailscaled)"
 
-cat > "$WRAPPER_DIR/tailscale" <<EOF
+mkdir -p "$WORKDIR" "$WRAPPER_DIR"
+
+cat > "$WRAPPER_DIR/tailscale" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
-real="${REAL_TAILSCALE}"
-socket="${TS_SOCKET}"
+real="__REAL_TAILSCALE__"
+socket="__TS_SOCKET__"
 
-if [ "\${1:-}" = "version" ]; then
-  exec "\$real" "\$@"
+if [ "${1:-}" = "version" ]; then
+  exec "$real" "$@"
 fi
 
-exec "\$real" --socket "\$socket" "\$@"
+exec "$real" --socket "$socket" "$@"
 EOF
+sed -i "s|__REAL_TAILSCALE__|$REAL_TAILSCALE|g; s|__TS_SOCKET__|$TS_SOCKET|g" "$WRAPPER_DIR/tailscale"
 chmod +x "$WRAPPER_DIR/tailscale"
 
 "$REAL_TAILSCALED" --state="$TS_STATE" --socket="$TS_SOCKET" --tun=userspace-networking >"$TS_LOG" 2>&1 &

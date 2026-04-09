@@ -234,6 +234,40 @@ func TestAgentOnceCleansExpiredLeaseAndPersistsState(t *testing.T) {
 	}
 }
 
+func TestAgentRunStopsAfterSelfRemovalWhenNoActiveLeasesRemain(t *testing.T) {
+	mgr, _, statePath, _ := newWorkflowTestManager(t, true)
+	rec := model.LeaseRecord{
+		LeaseID: "lease-cleaned",
+		Mode:    model.LeaseModeTimed,
+		Status:  model.LeaseStatusCleaned,
+	}
+	if err := state.Save(statePath, model.LocalState{Records: []model.LeaseRecord{rec}}); err != nil {
+		t.Fatalf("save state: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- mgr.AgentRun(ctx, 10*time.Millisecond)
+	}()
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("agent run returned err: %v", err)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("agent run did not stop after self-removal")
+	}
+
+	logBody := readFile(t, mgr.Runtime.LogPath)
+	if !strings.Contains(logBody, "tailstick agent stopping: no active managed leases remain") {
+		t.Fatalf("expected stop log, got %q", logBody)
+	}
+}
+
 func TestAgentOnceMarksActiveLeaseAsNoAction(t *testing.T) {
 	mgr, _, statePath, _ := newWorkflowTestManager(t, true)
 	expiresAt := time.Now().UTC().Add(2 * time.Hour)
@@ -264,6 +298,115 @@ func TestAgentOnceMarksActiveLeaseAsNoAction(t *testing.T) {
 	}
 	if got.LastReconciledAt == nil {
 		t.Fatal("expected reconcile timestamp for no-action path")
+	}
+}
+
+func TestWindowsScheduledTaskCommandUsesShortLauncher(t *testing.T) {
+	root := t.TempDir()
+	agentPath := filepath.Join(root, "TailStick", "tailstick-agent.exe")
+	rt := Runtime{
+		ConfigPath: filepath.Join(root, strings.Repeat("config-segment-", 8), "tailstick.config.json"),
+		StatePath:  filepath.Join(root, strings.Repeat("state-segment-", 8), "state.json"),
+		AuditPath:  filepath.Join(root, strings.Repeat("audit-segment-", 8), "audit.ndjson"),
+		LogPath:    filepath.Join(root, strings.Repeat("log-segment-", 8), "tailstick.log"),
+	}
+
+	launcherPath := windowsAgentLauncherPath(agentPath)
+	taskCmd := windowsScheduledTaskCommand(launcherPath)
+	if len(taskCmd) > 261 {
+		t.Fatalf("task command length = %d, want <= 261", len(taskCmd))
+	}
+	if !strings.HasSuffix(launcherPath, filepath.Join("TailStick", "agent.cmd")) {
+		t.Fatalf("launcher path %q should live beside the agent binary", launcherPath)
+	}
+
+	launcherBody := windowsAgentLauncherContent(agentPath, rt)
+	for _, want := range []string{agentPath, rt.ConfigPath, rt.StatePath, rt.AuditPath, rt.LogPath} {
+		if !strings.Contains(launcherBody, want) {
+			t.Fatalf("launcher body missing %q", want)
+		}
+	}
+	if !strings.Contains(launcherBody, "agent --once") {
+		t.Fatalf("launcher body should invoke one-shot agent mode, got %q", launcherBody)
+	}
+	if strings.Contains(launcherBody, "agent run") {
+		t.Fatalf("launcher body should not use unsupported nested agent run form, got %q", launcherBody)
+	}
+}
+
+func TestLinuxAgentInstallCommandsStartOnlyTheTimer(t *testing.T) {
+	got := linuxAgentInstallCommands()
+	want := [][]string{
+		{"systemctl", "daemon-reload"},
+		{"systemctl", "enable", "tailstick-agent.timer"},
+		{"systemctl", "start", "tailstick-agent.timer"},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d commands want %d", len(got), len(want))
+	}
+	for i := range want {
+		if !equalStringSlices(got[i], want[i]) {
+			t.Fatalf("command %d = %v want %v", i, got[i], want[i])
+		}
+	}
+	for _, cmd := range got {
+		if len(cmd) >= 3 && cmd[0] == "systemctl" && cmd[1] == "start" && cmd[2] == "tailstick-agent.service" {
+			t.Fatalf("install sequence must not start the oneshot service directly: %v", cmd)
+		}
+	}
+}
+
+func TestLinuxAgentServiceContentUsesAgentOnce(t *testing.T) {
+	rt := Runtime{
+		ConfigPath: "/tmp/tailstick.config.json",
+		StatePath:  "/tmp/state.json",
+		AuditPath:  "/tmp/audit.ndjson",
+		LogPath:    "/tmp/tailstick.log",
+	}
+
+	body := linuxAgentServiceContent("/usr/local/bin/tailstick-agent", rt)
+	for _, want := range []string{
+		"/usr/local/bin/tailstick-agent",
+		rt.ConfigPath,
+		rt.StatePath,
+		rt.AuditPath,
+		rt.LogPath,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("service body missing %q", want)
+		}
+	}
+	if !strings.Contains(body, "agent --once") {
+		t.Fatalf("service body should invoke one-shot agent mode, got %q", body)
+	}
+	if strings.Contains(body, "agent run") {
+		t.Fatalf("service body should not use unsupported nested agent run form, got %q", body)
+	}
+}
+
+func TestWindowsDelayedDeleteCommandUsesDetachedProcess(t *testing.T) {
+	targets := []string{
+		`C:\ProgramData\TailStick\tailstick-agent.exe`,
+		`C:\ProgramData\TailStick\agent.cmd`,
+	}
+
+	got := windowsDelayedDeleteCommand(targets)
+	if len(got) != 4 {
+		t.Fatalf("got %d command parts want 4", len(got))
+	}
+	if got[0] != "powershell" || got[1] != "-NoProfile" || got[2] != "-Command" {
+		t.Fatalf("unexpected command prefix: %v", got[:3])
+	}
+	if !strings.Contains(got[3], "Start-Process -FilePath cmd.exe") {
+		t.Fatalf("expected detached Start-Process launcher, got %q", got[3])
+	}
+	for _, target := range targets {
+		if !strings.Contains(got[3], target) {
+			t.Fatalf("cleanup command missing target %q", target)
+		}
+	}
+	if strings.Contains(got[3], "/B") {
+		t.Fatalf("cleanup command should not use cmd start /B: %q", got[3])
 	}
 }
 
