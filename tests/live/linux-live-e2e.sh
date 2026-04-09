@@ -37,7 +37,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 TAILSTICK_BIN="${TAILSTICK_BIN:-/src/dist/tailstick-linux-cli}"
-WORKDIR="/tmp/tailstick-live-e2e"
+WORKDIR="/var/tmp/tailstick-live-e2e"
 CONFIG_PATH="$WORKDIR/tailstick.config.json"
 STATE_PATH="$WORKDIR/state.json"
 LOG_PATH="$WORKDIR/tailstick.log"
@@ -70,6 +70,8 @@ curl -fsSL https://tailscale.com/install.sh | sh
 
 REAL_TAILSCALE="$(command -v tailscale)"
 REAL_TAILSCALED="$(command -v tailscaled)"
+
+mkdir -p "$WORKDIR" "$WRAPPER_DIR"
 
 cat > "$WRAPPER_DIR/tailscale" <<'EOF'
 #!/usr/bin/env bash
