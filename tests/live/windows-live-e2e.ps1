@@ -122,6 +122,20 @@ function Wait-ForTaskMissing([string]$TaskName, [int]$Retries = 10, [int]$DelayS
   Assert-TaskMissing $TaskName
 }
 
+function Wait-ForPathMissing([string]$Path, [string]$Label, [int]$Retries = 15, [int]$DelaySec = 2) {
+  for ($i = 0; $i -lt $Retries; $i++) {
+    if (-not (Test-Path $Path)) {
+      return
+    }
+    Write-Host "windows-live-e2e: $Label still present at $Path, retry $($i + 1)/$Retries"
+    Start-Sleep -Seconds $DelaySec
+  }
+
+  if (Test-Path $Path) {
+    throw "$Label still exists after self-removal"
+  }
+}
+
 Require-Env "TAILSTICK_EPHEMERAL_AUTH_KEY"
 Require-Env "TAILSTICK_API_KEY"
 Require-Env "TAILSTICK_OPERATOR_PASSWORD"
@@ -243,13 +257,8 @@ try {
   Wait-ForTaskMissing "TailStickAgent-Startup"
   Wait-ForTaskMissing "TailStickAgent-Periodic"
 
-  Start-Sleep -Seconds 5
-  if (Test-Path $agentBinaryPath) {
-    throw "agent binary still exists after self-removal"
-  }
-  if (Test-Path $agentLauncherPath) {
-    throw "agent launcher still exists after self-removal"
-  }
+  Wait-ForPathMissing -Path $agentBinaryPath -Label "agent binary"
+  Wait-ForPathMissing -Path $agentLauncherPath -Label "agent launcher"
 
   Write-Host "windows-live-e2e: PASS"
 } finally {
