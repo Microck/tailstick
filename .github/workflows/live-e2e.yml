@@ -1,0 +1,135 @@
+name: live-e2e
+
+on:
+  workflow_dispatch:
+    inputs:
+      run-linux:
+        description: Run the Linux live E2E lane
+        required: false
+        default: true
+        type: boolean
+      run-windows:
+        description: Run the Windows live E2E lane
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: live-e2e
+  cancel-in-progress: false
+
+jobs:
+  linux-live-e2e:
+    if: ${{ github.event.inputs.run-linux != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.6"
+
+      - name: Build Linux CLI binary
+        run: |
+          mkdir -p dist
+          go build -o dist/tailstick-linux-cli ./cmd/tailstick-linux-cli
+
+      - name: Build isolated Linux test image
+        run: docker build -f tests/live/linux-live-e2e.dockerfile -t tailstick-live-e2e .
+
+      - name: Start isolated Linux systemd container
+        run: |
+          docker run --detach \
+            --name tailstick-live-e2e \
+            --privileged \
+            --cgroupns=host \
+            --tmpfs /run \
+            --tmpfs /run/lock \
+            --volume /sys/fs/cgroup:/sys/fs/cgroup:rw \
+            --volume "${{ github.workspace }}:/src" \
+            --workdir /src \
+            tailstick-live-e2e
+
+      - name: Wait for Linux container init
+        run: |
+          for _ in $(seq 1 30); do
+            if docker exec tailstick-live-e2e bash -lc 'test -d /run/systemd/system'; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker exec tailstick-live-e2e bash -lc 'ls -la /run || true'
+          exit 1
+
+      - name: Run Linux live E2E
+        env:
+          TAILSTICK_AUTH_KEY: ${{ secrets.TAILSTICK_LIVE_E2E_AUTH_KEY }}
+          TAILSTICK_API_KEY: ${{ secrets.TAILSTICK_LIVE_E2E_API_KEY }}
+          TAILSTICK_OPERATOR_PASSWORD: ${{ secrets.TAILSTICK_LIVE_E2E_OPERATOR_PASSWORD }}
+          TAILSTICK_BIN: /src/dist/tailstick-linux-cli
+        run: |
+          docker exec \
+            -e TAILSTICK_AUTH_KEY \
+            -e TAILSTICK_API_KEY \
+            -e TAILSTICK_OPERATOR_PASSWORD \
+            -e TAILSTICK_BIN \
+            tailstick-live-e2e \
+            bash /src/tests/live/linux-live-e2e.sh
+
+      - name: Dump Linux live E2E logs on failure
+        if: failure()
+        run: |
+          docker exec tailstick-live-e2e bash -lc 'journalctl --no-pager || true'
+          docker exec tailstick-live-e2e bash -lc 'cat /tmp/tailstick-live-e2e/tailscaled.log || true'
+          docker exec tailstick-live-e2e bash -lc 'cat /tmp/tailstick-live-e2e/tailstick.log || true'
+          docker exec tailstick-live-e2e bash -lc 'cat /tmp/tailstick-live-e2e/state.json || true'
+
+      - name: Stop isolated Linux container
+        if: always()
+        run: docker rm -f tailstick-live-e2e || true
+
+  windows-live-e2e:
+    if: ${{ github.event.inputs.run-windows != 'false' }}
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.6"
+
+      - name: Build Windows CLI binary
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          go build -o dist/tailstick-windows-cli.exe ./cmd/tailstick-windows-cli
+
+      - name: Install Tailscale
+        shell: pwsh
+        run: |
+          winget install -e --id Tailscale.Tailscale --accept-package-agreements --accept-source-agreements
+          $tailscalePath = "C:\Program Files\Tailscale"
+          if (-not (Test-Path (Join-Path $tailscalePath "tailscale.exe"))) {
+            throw "tailscale.exe not found after install"
+          }
+          Add-Content -Path $env:GITHUB_PATH -Value $tailscalePath
+
+      - name: Run Windows live E2E
+        shell: pwsh
+        env:
+          TAILSTICK_EPHEMERAL_AUTH_KEY: ${{ secrets.TAILSTICK_LIVE_E2E_EPHEMERAL_AUTH_KEY }}
+          TAILSTICK_API_KEY: ${{ secrets.TAILSTICK_LIVE_E2E_API_KEY }}
+          TAILSTICK_OPERATOR_PASSWORD: ${{ secrets.TAILSTICK_LIVE_E2E_OPERATOR_PASSWORD }}
+        run: ./tests/live/windows-live-e2e.ps1
+
+      - name: Dump Windows live E2E logs on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          $workDir = Join-Path $env:TEMP "tailstick-live-e2e"
+          Get-Content -Path (Join-Path $workDir "tailstick.log") -ErrorAction SilentlyContinue
+          Get-Content -Path (Join-Path $workDir "state.json") -ErrorAction SilentlyContinue
