@@ -23,6 +23,7 @@ import (
 	"github.com/tailstick/tailstick/internal/tailscale"
 )
 
+// Runtime holds filesystem paths and flags that control Manager behaviour.
 type Runtime struct {
 	ConfigPath string
 	StatePath  string
@@ -31,6 +32,7 @@ type Runtime struct {
 	DryRun     bool
 }
 
+// Manager orchestrates enrollment, reconciliation, and cleanup of device leases.
 type Manager struct {
 	Runtime Runtime
 	Logger  *logging.Logger
@@ -39,6 +41,7 @@ type Manager struct {
 	HostCtx platform.Context
 }
 
+// NewManager creates a Manager with resolved paths, a logger, and a platform context.
 func NewManager(rt Runtime) (*Manager, error) {
 	host, err := platform.Detect()
 	if err != nil {
@@ -80,6 +83,8 @@ func (m *Manager) Close() {
 	_ = m.Logger.Close()
 }
 
+// Enroll creates a new device lease: validates options, installs/connects tailscale,
+// persists state, and optionally installs the background agent.
 func (m *Manager) Enroll(ctx context.Context, opts model.RuntimeOptions) (model.LeaseRecord, error) {
 	if !m.Runtime.DryRun && !platform.IsElevated() {
 		return model.LeaseRecord{}, fmt.Errorf("elevated privileges are required for enrollment; %s", platform.ElevationHint(m.HostCtx.ExePath, nil))
@@ -208,6 +213,7 @@ func (m *Manager) Enroll(ctx context.Context, opts model.RuntimeOptions) (model.
 	return rec, nil
 }
 
+// AgentOnce runs a single reconciliation pass over all lease records.
 func (m *Manager) AgentOnce(ctx context.Context) error {
 	st, err := state.Load(m.Runtime.StatePath)
 	if err != nil {
@@ -249,6 +255,8 @@ func (m *Manager) AgentOnce(ctx context.Context) error {
 	return nil
 }
 
+// AgentRun runs continuous reconciliation at the given interval until all
+// managed leases are cleaned or the context is cancelled.
 func (m *Manager) AgentRun(ctx context.Context, interval time.Duration) error {
 	if interval <= 0 {
 		interval = 1 * time.Minute
@@ -277,6 +285,7 @@ func (m *Manager) AgentRun(ctx context.Context, interval time.Duration) error {
 	}
 }
 
+// ForceCleanup immediately cleans up the lease with the given ID.
 func (m *Manager) ForceCleanup(ctx context.Context, leaseID string) error {
 	if strings.TrimSpace(leaseID) == "" {
 		return fmt.Errorf("lease id is required")

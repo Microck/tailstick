@@ -15,17 +15,21 @@ import (
 	"github.com/tailstick/tailstick/internal/platform"
 )
 
+// Client wraps command-line interactions with the tailscale binary.
 type Client struct {
 	Runner platform.Runner
 }
 
 var deleteDeviceHTTPClient = http.DefaultClient
 
+// IsInstalled reports whether the tailscale binary is available on PATH.
 func (c Client) IsInstalled(ctx context.Context) bool {
 	_, err := c.Runner.Run(ctx, []string{"tailscale", "version"})
 	return err == nil
 }
 
+// EnsureInstalled installs tailscale if not already present.
+// For the stable channel it also pins the exact version.
 func (c Client) EnsureInstalled(ctx context.Context, preset model.Preset, channel model.Channel, stableVersion string) error {
 	if !c.IsInstalled(ctx) {
 		cmd := installCommand(preset, channel)
@@ -49,6 +53,7 @@ func (c Client) EnsureInstalled(ctx context.Context, preset model.Preset, channe
 	return nil
 }
 
+// Up runs tailscale up with the given auth key, hostname, and options.
 func (c Client) Up(ctx context.Context, preset model.Preset, deviceName string, mode model.LeaseMode, exitNode string) error {
 	auth := preset.AuthKey
 	if mode == model.LeaseModeSession {
@@ -80,16 +85,19 @@ func (c Client) Up(ctx context.Context, preset model.Preset, deviceName string, 
 	return err
 }
 
+// Down disconnects the active tailscale node.
 func (c Client) Down(ctx context.Context) error {
 	_, err := c.Runner.Run(ctx, []string{"tailscale", "down"})
 	return err
 }
 
+// Logout logs out the current tailscale node.
 func (c Client) Logout(ctx context.Context) error {
 	_, err := c.Runner.Run(ctx, []string{"tailscale", "logout"})
 	return err
 }
 
+// Status returns the current tailscale status including the self peer identity.
 func (c Client) Status(ctx context.Context) (model.TailscaleStatus, error) {
 	out, err := c.Runner.Run(ctx, []string{"tailscale", "status", "--json"})
 	if err != nil {
@@ -122,6 +130,8 @@ func (c Client) Status(ctx context.Context) (model.TailscaleStatus, error) {
 	return st, nil
 }
 
+// Uninstall removes tailscale using the platform-appropriate command.
+// Returns nil silently if no uninstall command is configured.
 func (c Client) Uninstall(ctx context.Context, preset model.Preset) error {
 	cmd := uninstallCommand(preset)
 	if len(cmd) == 0 {
@@ -131,6 +141,8 @@ func (c Client) Uninstall(ctx context.Context, preset model.Preset) error {
 	return err
 }
 
+// DeleteDevice removes a device from the tailnet via the Tailscale API.
+// Returns nil if either apiKey or deviceID is empty (treated as no-op).
 func DeleteDevice(ctx context.Context, apiKey, deviceID string) error {
 	if strings.TrimSpace(apiKey) == "" || strings.TrimSpace(deviceID) == "" {
 		return nil

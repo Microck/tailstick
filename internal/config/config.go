@@ -15,6 +15,9 @@ const (
 	DefaultConfigFile = "tailstick.config.json"
 )
 
+// Load reads and validates the TailStick configuration from the given file path.
+// If path is empty, DefaultConfigFile is used.
+// Environment variable placeholders (${VAR}) are expanded before parsing.
 func Load(path string) (model.Config, error) {
 	if path == "" {
 		path = DefaultConfigFile
@@ -40,6 +43,7 @@ func Load(path string) (model.Config, error) {
 	return cfg, nil
 }
 
+// Validate checks that a Config has at least one preset, unique IDs, and auth material.
 func Validate(cfg model.Config) error {
 	if len(cfg.Presets) == 0 {
 		return errors.New("config must define at least one preset")
@@ -65,6 +69,7 @@ func Validate(cfg model.Config) error {
 	return nil
 }
 
+// FindPreset returns the preset matching id, or the default/first preset if id is empty.
 func FindPreset(cfg model.Config, id string) (model.Preset, error) {
 	if id == "" {
 		id = cfg.DefaultPreset
@@ -90,6 +95,8 @@ func ResolvePath(baseDir, path string) string {
 	return filepath.Join(baseDir, path)
 }
 
+// ResolvePresetSecrets fills in secret fields from environment variables when
+// the inline values are empty. Returns a copy; the original preset is not modified.
 func ResolvePresetSecrets(p model.Preset) model.Preset {
 	out := p
 	if strings.TrimSpace(out.AuthKey) == "" && strings.TrimSpace(out.AuthKeyEnv) != "" {
