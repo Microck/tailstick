@@ -173,6 +173,18 @@ ci also runs:
 - linux docker sandbox e2e: `tests/sandbox/linux-sandbox-e2e.sh`
 - windows vm smoke: `tests/sandbox/windows-vm-smoke.ps1`
 
+## branding assets
+
+- canonical logo source: `assets/icon/tailstick-logo.png`
+- windows executable icon resources: `cmd/tailstick-windows-*/resource_windows_amd64.syso`
+- gui favicon asset: `internal/gui/tailstick-favicon.png`
+
+regenerate windows icon resources after logo updates:
+
+```bash
+make icons
+```
+
 ## documentation
 
 - [architecture](docs/architecture.md)

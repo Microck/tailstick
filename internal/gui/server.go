@@ -2,6 +2,7 @@ package gui
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -37,6 +38,8 @@ type enrollRequest struct {
 func Run(ctx context.Context, srv *Server, openBrowser bool) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", srv.index)
+	mux.HandleFunc("/favicon.ico", srv.favicon)
+	mux.HandleFunc("/favicon.png", srv.favicon)
 	mux.HandleFunc("/api/presets", srv.presets)
 	mux.HandleFunc("/api/enroll", srv.enroll)
 
@@ -120,6 +123,12 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(indexHTML))
 }
 
+func (s *Server) favicon(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Header().Set("Content-Type", "image/png")
+	_, _ = w.Write(faviconPNG)
+}
+
 func writeJSON(w http.ResponseWriter, data any) {
 	writeJSONCode(w, http.StatusOK, data)
 }
@@ -143,11 +152,15 @@ func open(url string) error {
 	return cmd.Start()
 }
 
+//go:embed tailstick-favicon.png
+var faviconPNG []byte
+
 var indexHTML = strings.TrimSpace(`<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
   <title>TailStick</title>
   <style>
     :root {

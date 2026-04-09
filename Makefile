@@ -1,6 +1,6 @@
 GO ?= go
 
-.PHONY: fmt test vet build build-all sandbox-linux
+.PHONY: fmt test vet build build-all sandbox-linux icons
 
 fmt:
 	gofmt -w $(shell find . -name '*.go' -type f)
@@ -23,6 +23,9 @@ build-all:
 	GOOS=linux GOARCH=amd64 $(GO) build -o dist/tailstick-linux-gui ./cmd/tailstick-linux-gui
 	GOOS=windows GOARCH=amd64 $(GO) build -o dist/tailstick-windows-cli.exe ./cmd/tailstick-windows-cli
 	GOOS=windows GOARCH=amd64 $(GO) build -o dist/tailstick-windows-gui.exe ./cmd/tailstick-windows-gui
+
+icons:
+	./scripts/generate-windows-icon.sh
 
 sandbox-linux:
 	mkdir -p dist

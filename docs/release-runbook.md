@@ -21,6 +21,7 @@ This runbook is the canonical release path for `tailstick`.
 ```bash
 go test ./...
 go vet ./...
+make icons
 go build ./cmd/tailstick-linux-cli ./cmd/tailstick-linux-gui ./cmd/tailstick-windows-cli ./cmd/tailstick-windows-gui
 make sandbox-linux
 ```
