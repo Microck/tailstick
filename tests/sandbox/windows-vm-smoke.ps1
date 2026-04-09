@@ -51,7 +51,7 @@ $runArgs = @(
   "--dry-run"
 )
 
-$runOutput = & $bin @runArgs 2>&1
+$runOutput = ((& $bin @runArgs 2>&1) | Out-String).Trim()
 if ($LASTEXITCODE -ne 0) {
   throw "run command failed: $runOutput"
 }
@@ -78,7 +78,7 @@ $cleanupArgs = @(
   "--lease-id", $leaseId,
   "--dry-run"
 )
-$cleanupOutput = & $bin @cleanupArgs 2>&1
+$cleanupOutput = ((& $bin @cleanupArgs 2>&1) | Out-String).Trim()
 if ($LASTEXITCODE -ne 0) {
   throw "cleanup command failed: $cleanupOutput"
 }
@@ -92,7 +92,7 @@ $agentArgs = @(
   "--audit", $auditPath,
   "--dry-run"
 )
-$agentOutput = & $bin @agentArgs 2>&1
+$agentOutput = ((& $bin @agentArgs 2>&1) | Out-String).Trim()
 if ($LASTEXITCODE -ne 0) {
   throw "agent --once command failed: $agentOutput"
 }
