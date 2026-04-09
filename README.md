@@ -16,7 +16,6 @@
 
 `tailstick` is a usb-delivered tailscale enrollment tool for authorized sysadmin workflows on windows and linux. it gives operators one command surface for controlled onboarding, bounded lease modes, and automatic cleanup that can continue after the usb is unplugged.
 
-[documentation](docs/) | [github](https://github.com/Microck/tailstick)
 
 ## why
 
@@ -32,18 +31,6 @@ if you need to get a field machine onto your tailnet without building a backend 
 6. run the binary once the config and secrets are in place.
 
 for normal operator use, use the release binaries. building from source is only for development work.
-
-## common workflows
-
-use the cli when you already know the preset and want a direct operator flow.
-
-use the gui when you want a small local browser form instead of command flags.
-
-use session mode when access should disappear with the machine session. use timed mode when access should expire after a fixed number of days. use permanent mode when you want to leave a normal tailscale install behind.
-
-## common uses
-
-common uses include short-lived field support, temporary onboarding for remote ops work, usb-based enrollment in restricted environments, and controlled permanent installs where you still want the setup to begin from a preset instead of a hand-written command every time.
 
 ## platform support
 
