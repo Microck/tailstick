@@ -96,6 +96,32 @@ function Assert-TaskMissing([string]$TaskName) {
   }
 }
 
+function Wait-ForTaskExists([string]$TaskName, [int]$Retries = 10, [int]$DelaySec = 2) {
+  for ($i = 0; $i -lt $Retries; $i++) {
+    $queryOutput = (& schtasks /Query /TN $TaskName 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -eq 0) {
+      return
+    }
+    Write-Host "windows-live-e2e: task $TaskName not visible yet, retry $($i + 1)/$Retries"
+    Start-Sleep -Seconds $DelaySec
+  }
+
+  Assert-TaskExists $TaskName
+}
+
+function Wait-ForTaskMissing([string]$TaskName, [int]$Retries = 10, [int]$DelaySec = 2) {
+  for ($i = 0; $i -lt $Retries; $i++) {
+    $queryOutput = (& schtasks /Query /TN $TaskName 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) {
+      return
+    }
+    Write-Host "windows-live-e2e: task $TaskName still present, retry $($i + 1)/$Retries"
+    Start-Sleep -Seconds $DelaySec
+  }
+
+  Assert-TaskMissing $TaskName
+}
+
 Require-Env "TAILSTICK_EPHEMERAL_AUTH_KEY"
 Require-Env "TAILSTICK_API_KEY"
 Require-Env "TAILSTICK_OPERATOR_PASSWORD"
@@ -171,8 +197,8 @@ try {
   Write-Host "windows-live-e2e: verifying device $deviceId exists"
   Invoke-TailscaleApi -Method Get -Uri "https://api.tailscale.com/api/v2/device/$deviceId" -Headers $headers | Out-Null
 
-  Assert-TaskExists "TailStickAgent-Startup"
-  Assert-TaskExists "TailStickAgent-Periodic"
+  Wait-ForTaskExists "TailStickAgent-Startup"
+  Wait-ForTaskExists "TailStickAgent-Periodic"
 
   if (-not (Test-Path $agentBinaryPath)) {
     throw "expected agent binary at $agentBinaryPath"
@@ -214,8 +240,8 @@ try {
     "--audit", $auditPath
   ) -TimeoutSec 120
 
-  Assert-TaskMissing "TailStickAgent-Startup"
-  Assert-TaskMissing "TailStickAgent-Periodic"
+  Wait-ForTaskMissing "TailStickAgent-Startup"
+  Wait-ForTaskMissing "TailStickAgent-Periodic"
 
   Start-Sleep -Seconds 5
   if (Test-Path $agentBinaryPath) {
