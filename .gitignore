@@ -9,7 +9,16 @@
 tailstick.config.json
 logs/
 *.log
+*.ndjson
+state.json
 ralph-loop.local.md
+.agent-runtime.json
+
+# Local env overrides
+.env
+.env.local
+.env.*.local
+!.env.example
 
 # IDE
 .idea/

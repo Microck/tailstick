@@ -179,6 +179,7 @@ ci also runs:
 - [configuration](docs/configuration.md)
 - [operations](docs/operations.md)
 - [testing](docs/testing.md)
+- [release runbook](docs/release-runbook.md)
 - [plan](PLAN.md)
 
 ## disclaimer
