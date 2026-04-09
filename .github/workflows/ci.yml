@@ -1,0 +1,80 @@
+name: ci
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Verify formatting
+        run: |
+          unformatted="$(gofmt -l $(find . -name '*.go' -type f))"
+          if [ -n "$unformatted" ]; then
+            echo "Unformatted files:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build entrypoints
+        run: |
+          go build ./cmd/tailstick-linux-cli
+          go build ./cmd/tailstick-linux-gui
+          go build ./cmd/tailstick-windows-cli
+          go build ./cmd/tailstick-windows-gui
+
+  linux-sandbox-e2e:
+    runs-on: ubuntu-latest
+    needs: test-and-build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build Linux CLI binary
+        run: |
+          mkdir -p dist
+          go build -o dist/tailstick-linux-cli ./cmd/tailstick-linux-cli
+
+      - name: Run Linux sandbox E2E in Docker
+        run: |
+          chmod +x tests/sandbox/linux-sandbox-e2e.sh
+          docker run --rm -v "${{ github.workspace }}:/src" -w /src ubuntu:24.04 /src/tests/sandbox/linux-sandbox-e2e.sh
+
+  windows-vm-smoke:
+    runs-on: windows-latest
+    needs: test-and-build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build Windows CLI binary
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          go build -o dist/tailstick-windows-cli.exe ./cmd/tailstick-windows-cli
+
+      - name: Run Windows VM smoke test
+        shell: pwsh
+        run: ./tests/sandbox/windows-vm-smoke.ps1

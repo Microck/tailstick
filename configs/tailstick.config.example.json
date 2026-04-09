@@ -1,0 +1,31 @@
+{
+  "stableVersion": "1.76.6",
+  "defaultPreset": "ops-readonly",
+  "operatorPasswordEnv": "TAILSTICK_OPERATOR_PASSWORD",
+  "presets": [
+    {
+      "id": "ops-readonly",
+      "description": "Restricted operational lease profile for approved administrators",
+      "authKeyEnv": "TAILSTICK_AUTH_KEY",
+      "ephemeralAuthKeyEnv": "TAILSTICK_EPHEMERAL_AUTH_KEY",
+      "tags": ["tag:ops-usb"],
+      "acceptRoutes": true,
+      "allowExitNodeSelection": true,
+      "approvedExitNodes": ["exit1.example.ts.net", "100.64.0.5"],
+      "stableVersionOverride": "",
+      "install": {
+        "linuxStable": ["bash", "-lc", "curl -fsSL https://tailscale.com/install.sh | sh"],
+        "linuxLatest": ["bash", "-lc", "curl -fsSL https://tailscale.com/install.sh | sh"],
+        "windowsStable": ["powershell", "-NoProfile", "-Command", "winget install -e --id Tailscale.Tailscale --accept-package-agreements --accept-source-agreements"],
+        "windowsLatest": ["powershell", "-NoProfile", "-Command", "winget install -e --id Tailscale.Tailscale --accept-package-agreements --accept-source-agreements"],
+        "linuxUninstall": ["bash", "-lc", "apt-get remove -y tailscale"],
+        "windowsUninstall": ["powershell", "-NoProfile", "-Command", "winget uninstall -e --id Tailscale.Tailscale"]
+      },
+      "cleanup": {
+        "tailnet": "example.com",
+        "apiKeyEnv": "TAILSTICK_API_KEY",
+        "deviceDeleteEnabled": true
+      }
+    }
+  ]
+}

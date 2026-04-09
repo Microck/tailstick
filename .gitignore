@@ -1,0 +1,17 @@
+# Binaries
+/tailstick-*
+/dist/
+
+# Build/test cache
+/coverage.out
+
+# Runtime artifacts
+tailstick.config.json
+logs/
+*.log
+ralph-loop.local.md
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
