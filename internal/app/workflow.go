@@ -572,12 +572,7 @@ func (m *Manager) removeLocalAgentArtifacts(ctx context.Context) error {
 		return fmt.Errorf("remove local agent binary: %w", err)
 	}
 
-	quotedTargets := make([]string, 0, len(targets))
-	for _, target := range targets {
-		quotedTargets = append(quotedTargets, fmt.Sprintf(`\"%s\"`, strings.ReplaceAll(target, `"`, `\"`)))
-	}
-	delCmd := fmt.Sprintf(`start "" /B cmd /C "ping 127.0.0.1 -n 3 >NUL & del /f /q %s"`, strings.Join(quotedTargets, " "))
-	if _, delayedErr := m.Runner.Run(ctx, []string{"cmd", "/C", delCmd}); delayedErr != nil {
+	if _, delayedErr := m.Runner.Run(ctx, windowsDelayedDeleteCommand(targets)); delayedErr != nil {
 		return fmt.Errorf("schedule delayed local agent artifact delete: %w", delayedErr)
 	}
 	return nil
@@ -605,6 +600,16 @@ func linuxAgentInstallCommands() [][]string {
 		{"systemctl", "enable", "tailstick-agent.timer"},
 		{"systemctl", "start", "tailstick-agent.timer"},
 	}
+}
+
+func windowsDelayedDeleteCommand(targets []string) []string {
+	quotedTargets := make([]string, 0, len(targets))
+	for _, target := range targets {
+		quotedTargets = append(quotedTargets, fmt.Sprintf(`"%s"`, strings.ReplaceAll(target, `"`, `""`)))
+	}
+	cmdLine := "/c ping 127.0.0.1 -n 3 >NUL & del /f /q " + strings.Join(quotedTargets, " ")
+	ps := fmt.Sprintf(`Start-Process -FilePath cmd.exe -ArgumentList '%s' -WindowStyle Hidden`, strings.ReplaceAll(cmdLine, `'`, `''`))
+	return []string{"powershell", "-NoProfile", "-Command", ps}
 }
 
 func validateExitNode(preset model.Preset, value string) error {

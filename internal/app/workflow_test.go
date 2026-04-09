@@ -316,6 +316,32 @@ func TestLinuxAgentInstallCommandsStartOnlyTheTimer(t *testing.T) {
 	}
 }
 
+func TestWindowsDelayedDeleteCommandUsesDetachedProcess(t *testing.T) {
+	targets := []string{
+		`C:\ProgramData\TailStick\tailstick-agent.exe`,
+		`C:\ProgramData\TailStick\agent.cmd`,
+	}
+
+	got := windowsDelayedDeleteCommand(targets)
+	if len(got) != 4 {
+		t.Fatalf("got %d command parts want 4", len(got))
+	}
+	if got[0] != "powershell" || got[1] != "-NoProfile" || got[2] != "-Command" {
+		t.Fatalf("unexpected command prefix: %v", got[:3])
+	}
+	if !strings.Contains(got[3], "Start-Process -FilePath cmd.exe") {
+		t.Fatalf("expected detached Start-Process launcher, got %q", got[3])
+	}
+	for _, target := range targets {
+		if !strings.Contains(got[3], target) {
+			t.Fatalf("cleanup command missing target %q", target)
+		}
+	}
+	if strings.Contains(got[3], "/B") {
+		t.Fatalf("cleanup command should not use cmd start /B: %q", got[3])
+	}
+}
+
 func newWorkflowTestManager(t *testing.T, dryRun bool) (*Manager, string, string, model.Cleanup) {
 	t.Helper()
 
