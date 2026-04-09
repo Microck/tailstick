@@ -30,17 +30,12 @@ if you need temporary or permanent tailscale access on field machines without st
 
 ## quickstart
 
-go to [releases](https://github.com/Microck/tailstick/releases/latest) and download the two binaries for your machine: one cli binary and one gui binary.
-
-put both files in the same folder, then place a `tailstick.config.json` file next to them.
-
-you can write that config by hand from `configs/tailstick.config.example.json`, or you can use the optional [preset maker](https://tailstick.micr.dev/). the preset maker is just a faster way to build the config file. it is not required.
-
-before first run, make sure you have the secrets your presets depend on. in most setups that means a tailscale auth key, a tailscale ephemeral auth key, and a tailscale api key for cleanup. if you want password-gated operator use, you also need an operator password.
-
-those values are usually supplied through environment variables such as `TAILSTICK_AUTH_KEY`, `TAILSTICK_EPHEMERAL_AUTH_KEY`, `TAILSTICK_API_KEY`, and `TAILSTICK_OPERATOR_PASSWORD`.
-
-once the binaries, config, and secrets are in place, run the cli if you want a direct command flow, or run the gui if you want the local browser flow.
+1. go to [releases](https://github.com/Microck/tailstick/releases/latest) and download the binary you want for your machine. use the cli if you want a direct command flow, or use the gui if you want the local browser flow.
+2. put that binary in a working folder, then place a `tailstick.config.json` file next to it.
+3. write that config by hand from `configs/tailstick.config.example.json`, or use the optional [preset maker](https://tailstick.micr.dev/) if you want a faster way to build it.
+4. make sure you have the secrets your presets depend on. in most setups that means a tailscale auth key, a tailscale ephemeral auth key, and a tailscale api key for cleanup. if you want password-gated operator use, you also need an operator password.
+5. supply those values through environment variables such as `TAILSTICK_AUTH_KEY`, `TAILSTICK_EPHEMERAL_AUTH_KEY`, `TAILSTICK_API_KEY`, and `TAILSTICK_OPERATOR_PASSWORD`.
+6. run the binary once the config and secrets are in place.
 
 for normal operator use, use the release binaries. building from source is only for development work.
 
