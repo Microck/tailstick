@@ -17,6 +17,8 @@ func RunGUI(args []string, rt Runtime) int {
 		logPath     = fs.String("log", rt.LogPath, "log path")
 		dryRun      = fs.Bool("dry-run", rt.DryRun, "dry-run mode")
 		openBrowser = fs.Bool("open-browser", true, "open browser automatically")
+		host        = fs.String("host", "127.0.0.1", "bind host")
+		port        = fs.Int("port", 0, "bind port (0 picks an ephemeral port)")
 	)
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -38,7 +40,7 @@ func RunGUI(args []string, rt Runtime) int {
 		ConfigPath: mgr.Runtime.ConfigPath,
 		Logf:       mgr.Logger.Info,
 		EnrollFn:   mgr.Enroll,
-	}, *openBrowser); err != nil {
+	}, *openBrowser, *host, *port); err != nil {
 		fmt.Fprintln(os.Stderr, "gui:", err)
 		return 1
 	}

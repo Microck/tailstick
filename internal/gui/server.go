@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,7 +36,16 @@ type enrollRequest struct {
 	Password      string `json:"password"`
 }
 
-func Run(ctx context.Context, srv *Server, openBrowser bool) error {
+func Run(ctx context.Context, srv *Server, openBrowser bool, host string, port int) error {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port < 0 || port > 65535 {
+		return fmt.Errorf("invalid port %d: expected 0-65535", port)
+	}
+
+	listenAddr := net.JoinHostPort(host, strconv.Itoa(port))
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", srv.index)
 	mux.HandleFunc("/favicon.ico", srv.favicon)
@@ -43,7 +53,7 @@ func Run(ctx context.Context, srv *Server, openBrowser bool) error {
 	mux.HandleFunc("/api/presets", srv.presets)
 	mux.HandleFunc("/api/enroll", srv.enroll)
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	ln, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		return err
 	}

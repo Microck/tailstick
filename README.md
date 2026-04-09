@@ -53,6 +53,22 @@ go build -o tailstick-windows-cli.exe ./cmd/tailstick-windows-cli
 go build -o tailstick-windows-gui.exe ./cmd/tailstick-windows-gui
 ```
 
+### download release assets (recommended)
+
+linux amd64:
+
+```bash
+curl -L -o tailstick-linux-amd64.tar.gz https://github.com/Microck/tailstick/releases/latest/download/tailstick-linux-amd64.tar.gz
+tar -xzf tailstick-linux-amd64.tar.gz
+```
+
+windows amd64 (powershell):
+
+```powershell
+Invoke-WebRequest -Uri https://github.com/Microck/tailstick/releases/latest/download/tailstick-windows-amd64.tar.gz -OutFile tailstick-windows-amd64.tar.gz
+tar -xzf tailstick-windows-amd64.tar.gz
+```
+
 ### first run
 
 place `tailstick.config.json` next to your selected binary:
@@ -88,6 +104,12 @@ start the gui launcher:
 ```
 
 the gui opens a local browser tab and also prints the localhost url.
+
+for remote preview/testing on a specific interface:
+
+```bash
+./tailstick-linux-gui --host 0.0.0.0 --port 18080 --open-browser=false
+```
 
 ## platform support
 
