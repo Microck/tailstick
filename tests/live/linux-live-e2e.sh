@@ -80,11 +80,11 @@ set -euo pipefail
 real="__REAL_TAILSCALE__"
 socket="__TS_SOCKET__"
 
-if [ "\${1:-}" = "version" ]; then
-  exec "\$real" "\$@"
+if [ "${1:-}" = "version" ]; then
+  exec "$real" "$@"
 fi
 
-exec "\$real" --socket "\$socket" "\$@"
+exec "$real" --socket "$socket" "$@"
 EOF
 sed -i "s|__REAL_TAILSCALE__|$REAL_TAILSCALE|g; s|__TS_SOCKET__|$TS_SOCKET|g" "$WRAPPER_DIR/tailscale"
 chmod +x "$WRAPPER_DIR/tailscale"
