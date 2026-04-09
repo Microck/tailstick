@@ -443,7 +443,23 @@ WantedBy=timers.target
 }
 
 func (m *Manager) installWindowsAgent(ctx context.Context, agentPath string) error {
-	taskCmd := fmt.Sprintf(`"%s" agent run --config "%s" --state "%s" --audit "%s" --log "%s"`, agentPath, m.Runtime.ConfigPath, m.Runtime.StatePath, m.Runtime.AuditPath, m.Runtime.LogPath)
+	launcherPath := windowsAgentLauncherPath(agentPath)
+	launcherBody := windowsAgentLauncherContent(agentPath, m.Runtime)
+	if m.Runtime.DryRun {
+		m.Logger.Info("[dry-run] would install windows agent launcher at %s", launcherPath)
+	} else {
+		if err := platform.EnsureParent(launcherPath); err != nil {
+			return err
+		}
+		if err := os.WriteFile(launcherPath, []byte(launcherBody), 0o644); err != nil {
+			return fmt.Errorf("write windows agent launcher: %w", err)
+		}
+	}
+
+	taskCmd := windowsScheduledTaskCommand(launcherPath)
+	if len(taskCmd) > 261 {
+		return fmt.Errorf("windows scheduled task target exceeds schtasks /TR limit: %d", len(taskCmd))
+	}
 	commands := [][]string{
 		{"schtasks", "/Create", "/TN", "TailStickAgent-Startup", "/SC", "ONSTART", "/TR", taskCmd, "/RL", "HIGHEST", "/F"},
 		{"schtasks", "/Create", "/TN", "TailStickAgent-Periodic", "/SC", "MINUTE", "/MO", "1", "/TR", taskCmd, "/RL", "HIGHEST", "/F"},
@@ -464,7 +480,7 @@ func (m *Manager) uninstallAgent(ctx context.Context) error {
 	} else {
 		err = m.uninstallLinuxAgent(ctx)
 	}
-	removeErr := m.removeLocalAgentBinary(ctx)
+	removeErr := m.removeLocalAgentArtifacts(ctx)
 	if err != nil {
 		return err
 	}
@@ -543,26 +559,48 @@ func (m *Manager) ensureLocalAgentBinary() (string, error) {
 	return target, nil
 }
 
-func (m *Manager) removeLocalAgentBinary(ctx context.Context) error {
-	target := platform.AgentBinaryPath()
-	if m.Runtime.DryRun {
-		m.Logger.Info("[dry-run] would remove local agent binary %s", target)
-		return nil
+func (m *Manager) removeLocalAgentArtifacts(ctx context.Context) error {
+	targets := []string{platform.AgentBinaryPath()}
+	if runtime.GOOS == "windows" {
+		targets = append(targets, windowsAgentLauncherPath(platform.AgentBinaryPath()))
 	}
-	err := os.Remove(target)
-	if err == nil || os.IsNotExist(err) {
+	if m.Runtime.DryRun {
+		m.Logger.Info("[dry-run] would remove local agent artifacts %s", strings.Join(targets, ", "))
 		return nil
 	}
 	if runtime.GOOS != "windows" {
+		err := os.Remove(targets[0])
+		if err == nil || os.IsNotExist(err) {
+			return nil
+		}
 		return fmt.Errorf("remove local agent binary: %w", err)
 	}
 
-	escaped := strings.ReplaceAll(target, `"`, `\"`)
-	delCmd := fmt.Sprintf(`start "" /B cmd /C "ping 127.0.0.1 -n 3 >NUL & del /f /q \"%s\""`, escaped)
+	quotedTargets := make([]string, 0, len(targets))
+	for _, target := range targets {
+		quotedTargets = append(quotedTargets, fmt.Sprintf(`\"%s\"`, strings.ReplaceAll(target, `"`, `\"`)))
+	}
+	delCmd := fmt.Sprintf(`start "" /B cmd /C "ping 127.0.0.1 -n 3 >NUL & del /f /q %s"`, strings.Join(quotedTargets, " "))
 	if _, delayedErr := m.Runner.Run(ctx, []string{"cmd", "/C", delCmd}); delayedErr != nil {
-		return fmt.Errorf("schedule delayed local agent binary delete: %w", delayedErr)
+		return fmt.Errorf("schedule delayed local agent artifact delete: %w", delayedErr)
 	}
 	return nil
+}
+
+func windowsAgentLauncherPath(agentPath string) string {
+	return filepath.Join(filepath.Dir(agentPath), "agent.cmd")
+}
+
+func windowsScheduledTaskCommand(launcherPath string) string {
+	return fmt.Sprintf(`"%s"`, launcherPath)
+}
+
+func windowsAgentLauncherContent(agentPath string, rt Runtime) string {
+	return strings.Join([]string{
+		"@echo off",
+		fmt.Sprintf(`"%s" agent run --config "%s" --state "%s" --audit "%s" --log "%s"`, agentPath, rt.ConfigPath, rt.StatePath, rt.AuditPath, rt.LogPath),
+		"",
+	}, "\r\n")
 }
 
 func validateExitNode(preset model.Preset, value string) error {

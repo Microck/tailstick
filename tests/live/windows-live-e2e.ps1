@@ -44,6 +44,7 @@ $logPath = Join-Path $workDir "tailstick.log"
 $auditPath = Join-Path $workDir "audit.ndjson"
 $programDataRoot = if ($env:ProgramData) { $env:ProgramData } else { "C:\ProgramData" }
 $agentBinaryPath = Join-Path $programDataRoot "TailStick\tailstick-agent.exe"
+$agentLauncherPath = Join-Path $programDataRoot "TailStick\agent.cmd"
 $headers = Get-BasicAuthHeader $env:TAILSTICK_API_KEY
 $deviceId = $null
 
@@ -111,6 +112,9 @@ try {
   if (-not (Test-Path $agentBinaryPath)) {
     throw "expected agent binary at $agentBinaryPath"
   }
+  if (-not (Test-Path $agentLauncherPath)) {
+    throw "expected agent launcher at $agentLauncherPath"
+  }
 
   $cleanupOutput = ((& $bin cleanup `
     --config $configPath `
@@ -156,6 +160,9 @@ try {
   Start-Sleep -Seconds 5
   if (Test-Path $agentBinaryPath) {
     throw "agent binary still exists after self-removal"
+  }
+  if (Test-Path $agentLauncherPath) {
+    throw "agent launcher still exists after self-removal"
   }
 
   Write-Host "windows-live-e2e: PASS"

@@ -267,6 +267,33 @@ func TestAgentOnceMarksActiveLeaseAsNoAction(t *testing.T) {
 	}
 }
 
+func TestWindowsScheduledTaskCommandUsesShortLauncher(t *testing.T) {
+	root := t.TempDir()
+	agentPath := filepath.Join(root, "TailStick", "tailstick-agent.exe")
+	rt := Runtime{
+		ConfigPath: filepath.Join(root, strings.Repeat("config-segment-", 8), "tailstick.config.json"),
+		StatePath:  filepath.Join(root, strings.Repeat("state-segment-", 8), "state.json"),
+		AuditPath:  filepath.Join(root, strings.Repeat("audit-segment-", 8), "audit.ndjson"),
+		LogPath:    filepath.Join(root, strings.Repeat("log-segment-", 8), "tailstick.log"),
+	}
+
+	launcherPath := windowsAgentLauncherPath(agentPath)
+	taskCmd := windowsScheduledTaskCommand(launcherPath)
+	if len(taskCmd) > 261 {
+		t.Fatalf("task command length = %d, want <= 261", len(taskCmd))
+	}
+	if !strings.HasSuffix(launcherPath, filepath.Join("TailStick", "agent.cmd")) {
+		t.Fatalf("launcher path %q should live beside the agent binary", launcherPath)
+	}
+
+	launcherBody := windowsAgentLauncherContent(agentPath, rt)
+	for _, want := range []string{agentPath, rt.ConfigPath, rt.StatePath, rt.AuditPath, rt.LogPath} {
+		if !strings.Contains(launcherBody, want) {
+			t.Fatalf("launcher body missing %q", want)
+		}
+	}
+}
+
 func newWorkflowTestManager(t *testing.T, dryRun bool) (*Manager, string, string, model.Cleanup) {
 	t.Helper()
 
