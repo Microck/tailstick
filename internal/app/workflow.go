@@ -261,6 +261,14 @@ func (m *Manager) AgentRun(ctx context.Context, interval time.Duration) error {
 		if err := m.AgentOnce(ctx); err != nil {
 			m.Logger.Error("agent iteration failed: %v", err)
 		}
+		st, err := state.Load(m.Runtime.StatePath)
+		if err != nil {
+			return err
+		}
+		if !hasActiveManagedLeases(st) {
+			m.Logger.Info("tailstick agent stopping: no active managed leases remain")
+			return nil
+		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

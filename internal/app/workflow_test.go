@@ -234,6 +234,40 @@ func TestAgentOnceCleansExpiredLeaseAndPersistsState(t *testing.T) {
 	}
 }
 
+func TestAgentRunStopsAfterSelfRemovalWhenNoActiveLeasesRemain(t *testing.T) {
+	mgr, _, statePath, _ := newWorkflowTestManager(t, true)
+	rec := model.LeaseRecord{
+		LeaseID: "lease-cleaned",
+		Mode:    model.LeaseModeTimed,
+		Status:  model.LeaseStatusCleaned,
+	}
+	if err := state.Save(statePath, model.LocalState{Records: []model.LeaseRecord{rec}}); err != nil {
+		t.Fatalf("save state: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- mgr.AgentRun(ctx, 10*time.Millisecond)
+	}()
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			t.Fatalf("agent run returned err: %v", err)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("agent run did not stop after self-removal")
+	}
+
+	logBody := readFile(t, mgr.Runtime.LogPath)
+	if !strings.Contains(logBody, "tailstick agent stopping: no active managed leases remain") {
+		t.Fatalf("expected stop log, got %q", logBody)
+	}
+}
+
 func TestAgentOnceMarksActiveLeaseAsNoAction(t *testing.T) {
 	mgr, _, statePath, _ := newWorkflowTestManager(t, true)
 	expiresAt := time.Now().UTC().Add(2 * time.Hour)
