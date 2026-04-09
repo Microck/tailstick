@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <title>TailStick</title>
+  <style>
+    :root {
+      --blue-500: #4b70cc;
+      --blue-600: #3f5db3;
+      --gray-0: #faf9f8;
+      --gray-50: #f9f7f6;
+      --gray-100: #f7f5f4;
+      --gray-200: #eeebea;
+      --gray-300: #dad6d5;
+      --gray-500: #706e6d;
+      --gray-700: #2e2d2d;
+      --gray-900: #1f1e1e;
+      --red-500: #d04841;
+      --white: #ffffff;
+      --ring: 0 0 0 3px rgba(63, 93, 179, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--gray-100);
+      color: var(--gray-900);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      letter-spacing: -0.01em;
+      line-height: 1.5;
+    }
+
+    .announce {
+      background: #252423;
+      color: #f4f3f2;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 10px 16px;
+    }
+
+    .announce span {
+      opacity: 0.9;
+    }
+
+    .announce a {
+      color: inherit;
+      margin-left: 10px;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .nav {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-300);
+      padding: 0 18px;
+    }
+
+    .nav-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--gray-900);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+      font-size: 2rem;
+      font-weight: 650;
+    }
+
+    .brand img {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 1px solid var(--gray-300);
+      background: #fff;
+      flex: 0 0 auto;
+    }
+
+    .brand span {
+      font-size: 2.02rem;
+      font-weight: 680;
+      line-height: 1;
+      text-transform: lowercase;
+    }
+
+    .nav-links {
+      display: inline-flex;
+      align-items: center;
+      gap: 28px;
+      color: var(--gray-700);
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: inherit;
+      white-space: nowrap;
+    }
+
+    .nav-links a:hover {
+      color: var(--gray-900);
+    }
+
+    .nav-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.98rem;
+    }
+
+    .login {
+      color: var(--gray-700);
+      text-decoration: none;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .login:hover {
+      color: var(--gray-900);
+    }
+
+    .cta {
+      border: 0;
+      border-radius: 12px;
+      background: var(--gray-900);
+      color: #fff;
+      text-decoration: none;
+      white-space: nowrap;
+      font-size: 0.97rem;
+      font-weight: 600;
+      padding: 10px 16px;
+      letter-spacing: -0.015em;
+      box-shadow: 0 8px 16px rgba(31, 30, 30, 0.18);
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 18px 42px;
+    }
+
+    .hero {
+      text-align: center;
+      margin: 0 auto;
+      max-width: 980px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2.35rem, 6vw, 5.06rem);
+      line-height: 1.03;
+      letter-spacing: -0.05em;
+      color: #2b2a2a;
+      text-wrap: balance;
+      font-weight: 540;
+    }
+
+    .hero p {
+      margin: 22px auto 0;
+      max-width: 880px;
+      color: var(--gray-500);
+      font-size: clamp(1.05rem, 1.75vw, 2rem);
+      line-height: 1.45;
+      letter-spacing: -0.02em;
+      text-wrap: pretty;
+    }
+
+    .hero-actions {
+      margin-top: 22px;
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .hero-actions .primary {
+      border: 0;
+      border-radius: 10px;
+      background: var(--gray-900);
+      color: #fff;
+      padding: 11px 18px;
+      font-size: 0.98rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      text-decoration: none;
+    }
+
+    .hero-actions .secondary {
+      color: var(--gray-700);
+      text-underline-offset: 3px;
+      font-size: 0.98rem;
+      font-weight: 500;
+    }
+
+    .mode-strip {
+      margin-top: 32px;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mode {
+      border: 1px solid var(--gray-300);
+      border-radius: 14px;
+      background: var(--white);
+      min-height: 118px;
+      padding: 13px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mode strong {
+      font-size: 1.02rem;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: var(--gray-900);
+      font-weight: 620;
+    }
+
+    .mode span {
+      color: var(--gray-500);
+      font-size: 0.86rem;
+      line-height: 1.42;
+    }
+
+    .mode.active {
+      border-color: var(--red-500);
+      background: var(--red-500);
+    }
+
+    .mode.active strong,
+    .mode.active span {
+      color: #fff;
+    }
+
+    .workspace {
+      margin-top: 18px;
+      border: 1px solid var(--gray-300);
+      border-radius: 20px;
+      background: #f5f3f2;
+      box-shadow: 0 14px 34px rgba(31, 30, 30, 0.08);
+      padding: 24px;
+    }
+
+    .workspace-head {
+      margin-bottom: 14px;
+    }
+
+    .workspace-head h2 {
+      margin: 0;
+      font-size: 1.96rem;
+      line-height: 1.12;
+      letter-spacing: -0.04em;
+      color: var(--gray-900);
+      font-weight: 560;
+    }
+
+    .workspace-head p {
+      margin: 7px 0 0;
+      font-size: 0.96rem;
+      color: var(--gray-500);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--gray-700);
+      font-size: 0.85rem;
+      font-weight: 520;
+      letter-spacing: -0.01em;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--gray-300);
+      border-radius: 10px;
+      background: var(--white);
+      color: var(--gray-900);
+      font-size: 0.95rem;
+      padding: 11px 12px;
+      line-height: 1.3;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    input::placeholder {
+      color: var(--gray-500);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--blue-600);
+      box-shadow: var(--ring);
+    }
+
+    input[disabled], select[disabled] {
+      background: var(--gray-100);
+      color: var(--gray-500);
+      cursor: not-allowed;
+    }
+
+    .check-row {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .check {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--gray-700);
+      font-size: 0.87rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .check input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--blue-600);
+    }
+
+    .run-btn {
+      margin-top: 12px;
+      width: 100%;
+      border: 0;
+      border-radius: 11px;
+      background: var(--blue-500);
+      color: #fff;
+      font-size: 1.02rem;
+      font-weight: 620;
+      letter-spacing: -0.01em;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: transform 100ms ease, background-color 120ms ease;
+    }
+
+    .run-btn:hover {
+      background: var(--blue-600);
+    }
+
+    .run-btn:active {
+      transform: translateY(1px);
+    }
+
+    .run-btn[disabled] {
+      opacity: 0.75;
+      cursor: wait;
+    }
+
+    .output {
+      margin-top: 12px;
+      border: 1px solid #253570;
+      border-radius: 13px;
+      background: linear-gradient(180deg, #24356f, #1e2c5c);
+      color: #dfe7ff;
+      min-height: 138px;
+      max-height: 260px;
+      overflow: auto;
+      padding: 12px;
+      font-size: 0.79rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    @media (max-width: 1180px) {
+      .mode-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 920px) {
+      .announce {
+        font-size: 0.66rem;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+        width: min(420px, 100%);
+      }
+
+      .hero-actions .primary {
+        width: 100%;
+      }
+
+      .mode-strip,
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .nav-inner {
+        min-height: 66px;
+      }
+
+      .brand span {
+        font-size: 1.6rem;
+      }
+
+      .login {
+        display: none;
+      }
+
+      .page {
+        padding-top: 26px;
+      }
+
+      .hero h1 {
+        font-size: clamp(2rem, 11vw, 3.2rem);
+      }
+
+      .mode-strip,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .workspace {
+        border-radius: 16px;
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="announce">
+    <span>TailStick USB launcher is now available for controlled operator workflows.</span>
+    <a href="#">Read more</a>
+  </div>
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#">
+        <img src="/favicon.png" alt="TailStick icon" />
+        <span>tailstick</span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#">Platform +</a>
+        <a href="#">Customer Stories +</a>
+        <a href="#">Community +</a>
+        <a href="#">Pricing</a>
+      </nav>
+      <div class="nav-right">
+        <a class="login" href="#">Login</a>
+        <a class="cta" href="#">Get started - it's free!</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <h1>The best secure connectivity launcher for USB-based onboarding</h1>
+      <p>
+        A Zero Trust identity-driven workflow for temporary and permanent machine access, with deterministic
+        cleanup that keeps your tailnet free of stale devices.
+      </p>
+      <div class="hero-actions">
+        <a href="#" class="primary">Start connecting devices</a>
+        <a href="#" class="secondary">Contact sales</a>
+      </div>
+    </section>
+
+    <section class="mode-strip" aria-label="Lease modes">
+      <article class="mode active">
+        <strong>Session Lease</strong>
+        <span>Removes on reboot and startup cleanup cycles.</span>
+      </article>
+      <article class="mode">
+        <strong>Timed Lease</strong>
+        <span>Preset or custom-day expiration windows.</span>
+      </article>
+      <article class="mode">
+        <strong>Permanent</strong>
+        <span>Leaves a normal managed Tailscale installation.</span>
+      </article>
+      <article class="mode">
+        <strong>Stable Channel</strong>
+        <span>Pinned known-good install path for operators.</span>
+      </article>
+      <article class="mode">
+        <strong>Latest Channel</strong>
+        <span>Tracks newest release for quick validation.</span>
+      </article>
+    </section>
+
+    <section class="workspace">
+      <div class="workspace-head">
+        <h2>TailStick Launcher</h2>
+        <p>Create a lease from your configured presets.</p>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="preset">Preset</label>
+          <select id="preset"></select>
+        </div>
+        <div class="field">
+          <label for="mode">Mode</label>
+          <select id="mode">
+            <option value="session">Session</option>
+            <option value="timed">Timed</option>
+            <option value="permanent">Permanent</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="channel">Channel</label>
+          <select id="channel">
+            <option value="stable">Stable</option>
+            <option value="latest">Latest</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="days">Days</label>
+          <select id="days">
+            <option value="1">1</option>
+            <option value="3" selected>3</option>
+            <option value="7">7</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="customDays">Custom Days</label>
+          <input id="customDays" type="number" min="1" max="30" value="0" disabled />
+        </div>
+        <div class="field">
+          <label for="suffix">Device Suffix</label>
+          <input id="suffix" placeholder="optional-label" />
+        </div>
+        <div class="field">
+          <label for="exitNode">Exit Node</label>
+          <input id="exitNode" placeholder="approved-exit-node" />
+        </div>
+        <div class="field">
+          <label for="password">Operator Password (optional)</label>
+          <input id="password" type="password" />
+        </div>
+      </div>
+
+      <div class="check-row">
+        <label class="check"><input id="useCustomDays" type="checkbox" /> Enable custom days</label>
+        <label class="check"><input id="allowExisting" type="checkbox" /> Allow existing Tailscale install</label>
+      </div>
+
+      <button id="run" class="run-btn" type="button">Create Lease</button>
+      <pre id="out" class="output">Ready.</pre>
+    </section>
+  </main>
+
+  <script>
+    const out = document.getElementById("out");
+    const runButton = document.getElementById("run");
+    const customDays = document.getElementById("customDays");
+    const useCustomDays = document.getElementById("useCustomDays");
+
+    function log(v) {
+      out.textContent = typeof v === "string" ? v : JSON.stringify(v, null, 2);
+    }
+
+    async function loadPresets() {
+      const response = await fetch("/api/presets");
+      const data = await response.json();
+      const select = document.getElementById("preset");
+      select.innerHTML = "";
+
+      const presets = Array.isArray(data.presets) ? data.presets : [];
+      if (presets.length === 0) {
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = "No presets available";
+        select.appendChild(empty);
+        return;
+      }
+
+      for (const preset of presets) {
+        const option = document.createElement("option");
+        option.value = preset.id;
+        option.textContent = preset.id + " - " + (preset.description || "");
+        if (data.defaultPreset && preset.id === data.defaultPreset) {
+          option.selected = true;
+        }
+        select.appendChild(option);
+      }
+    }
+
+    useCustomDays.addEventListener("change", (event) => {
+      customDays.disabled = !event.target.checked;
+      if (!event.target.checked) {
+        customDays.value = "0";
+      } else if (Number(customDays.value) <= 0) {
+        customDays.value = "14";
+      }
+    });
+
+    runButton.addEventListener("click", async () => {
+      const useCustom = useCustomDays.checked;
+      const body = {
+        presetId: document.getElementById("preset").value,
+        mode: document.getElementById("mode").value,
+        channel: document.getElementById("channel").value,
+        days: Number(document.getElementById("days").value),
+        customDays: useCustom ? Number(customDays.value) : 0,
+        suffix: document.getElementById("suffix").value,
+        exitNode: document.getElementById("exitNode").value,
+        allowExisting: document.getElementById("allowExisting").checked,
+        password: document.getElementById("password").value
+      };
+
+      runButton.disabled = true;
+      const previousLabel = runButton.textContent;
+      runButton.textContent = "Creating lease...";
+      log("Submitting lease request...");
+
+      try {
+        const response = await fetch("/api/enroll", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          data = { ok: false, error: "server returned non-json response" };
+        }
+
+        log(data);
+      } catch (error) {
+        log(String(error));
+      } finally {
+        runButton.disabled = false;
+        runButton.textContent = previousLabel;
+      }
+    });
+
+    loadPresets().catch((error) => log(String(error)));
+  </script>
+</body>
+</html>
