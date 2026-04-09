@@ -19,6 +19,8 @@ type Client struct {
 	Runner platform.Runner
 }
 
+var deleteDeviceHTTPClient = http.DefaultClient
+
 func (c Client) IsInstalled(ctx context.Context) bool {
 	_, err := c.Runner.Run(ctx, []string{"tailscale", "version"})
 	return err == nil
@@ -138,7 +140,7 @@ func DeleteDevice(ctx context.Context, apiKey, deviceID string) error {
 		return err
 	}
 	req.SetBasicAuth(apiKey, "")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := deleteDeviceHTTPClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -147,7 +149,11 @@ func DeleteDevice(ctx context.Context, apiKey, deviceID string) error {
 		return nil
 	}
 	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
-	return fmt.Errorf("delete device failed: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
+	bodyText := strings.TrimSpace(string(body))
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	return fmt.Errorf("delete device failed: status=%d body=%s", resp.StatusCode, bodyText)
 }
 
 func installCommand(preset model.Preset, channel model.Channel) []string {

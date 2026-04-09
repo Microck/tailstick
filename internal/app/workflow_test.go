@@ -294,6 +294,28 @@ func TestWindowsScheduledTaskCommandUsesShortLauncher(t *testing.T) {
 	}
 }
 
+func TestLinuxAgentInstallCommandsStartOnlyTheTimer(t *testing.T) {
+	got := linuxAgentInstallCommands()
+	want := [][]string{
+		{"systemctl", "daemon-reload"},
+		{"systemctl", "enable", "tailstick-agent.timer"},
+		{"systemctl", "start", "tailstick-agent.timer"},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d commands want %d", len(got), len(want))
+	}
+	for i := range want {
+		if !equalStringSlices(got[i], want[i]) {
+			t.Fatalf("command %d = %v want %v", i, got[i], want[i])
+		}
+	}
+	for _, cmd := range got {
+		if len(cmd) >= 3 && cmd[0] == "systemctl" && cmd[1] == "start" && cmd[2] == "tailstick-agent.service" {
+			t.Fatalf("install sequence must not start the oneshot service directly: %v", cmd)
+		}
+	}
+}
+
 func newWorkflowTestManager(t *testing.T, dryRun bool) (*Manager, string, string, model.Cleanup) {
 	t.Helper()
 

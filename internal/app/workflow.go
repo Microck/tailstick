@@ -430,11 +430,7 @@ WantedBy=timers.target
 	if err := os.WriteFile(timerPath, []byte(timer), 0o644); err != nil {
 		return fmt.Errorf("write systemd timer: %w", err)
 	}
-	for _, cmd := range [][]string{
-		{"systemctl", "daemon-reload"},
-		{"systemctl", "enable", "--now", "tailstick-agent.timer"},
-		{"systemctl", "start", "tailstick-agent.service"},
-	} {
+	for _, cmd := range linuxAgentInstallCommands() {
 		if _, err := m.Runner.Run(ctx, cmd); err != nil {
 			return err
 		}
@@ -601,6 +597,14 @@ func windowsAgentLauncherContent(agentPath string, rt Runtime) string {
 		fmt.Sprintf(`"%s" agent run --config "%s" --state "%s" --audit "%s" --log "%s"`, agentPath, rt.ConfigPath, rt.StatePath, rt.AuditPath, rt.LogPath),
 		"",
 	}, "\r\n")
+}
+
+func linuxAgentInstallCommands() [][]string {
+	return [][]string{
+		{"systemctl", "daemon-reload"},
+		{"systemctl", "enable", "tailstick-agent.timer"},
+		{"systemctl", "start", "tailstick-agent.timer"},
+	}
 }
 
 func validateExitNode(preset model.Preset, value string) error {
