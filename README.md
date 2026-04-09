@@ -20,13 +20,7 @@
 
 ## why
 
-if you need temporary or permanent tailscale access on field machines without standing up a backend service, `tailstick` gives you a practical path.
-
-- explicit operator launch with cli and gui entrypoints
-- deterministic lease records and machine-local audit surfaces
-- session, timed, and permanent modes with shared lifecycle logic
-- post-usb cleanup continuity through a machine-local agent binary
-- stable vs latest install channel control with explicit operator choice
+if you need to get a field machine onto your tailnet without building a backend service around the process, tailstick gives you a controlled local workflow. it keeps the operator flow simple, supports session, timed, and permanent access, and keeps cleanup tied to the same lease record instead of spreading state across ad hoc scripts.
 
 ## quickstart
 
@@ -38,6 +32,18 @@ if you need temporary or permanent tailscale access on field machines without st
 6. run the binary once the config and secrets are in place.
 
 for normal operator use, use the release binaries. building from source is only for development work.
+
+## common workflows
+
+use the cli when you already know the preset and want a direct operator flow.
+
+use the gui when you want a small local browser form instead of command flags.
+
+use session mode when access should disappear with the machine session. use timed mode when access should expire after a fixed number of days. use permanent mode when you want to leave a normal tailscale install behind.
+
+## common uses
+
+common uses include short-lived field support, temporary onboarding for remote ops work, usb-based enrollment in restricted environments, and controlled permanent installs where you still want the setup to begin from a preset instead of a hand-written command every time.
 
 ## platform support
 
@@ -63,7 +69,7 @@ for lease modes, tailstick installs local scheduling:
 the scheduled command runs from a machine-local binary copy:
 
 - linux: `/var/lib/tailstick/tailstick-agent`
-- windows: `%ProgramData%\\TailStick\\tailstick-agent.exe`
+- windows: `%ProgramData%\TailStick\tailstick-agent.exe`
 
 ## lease modes
 
@@ -102,39 +108,6 @@ manual cleanup:
 ./tailstick-linux-cli cleanup --lease-id <lease-id>
 ```
 
-## testing
-
-core checks:
-
-```bash
-go test ./...
-go vet ./...
-go build ./cmd/tailstick-linux-cli ./cmd/tailstick-linux-gui ./cmd/tailstick-windows-cli ./cmd/tailstick-windows-gui
-```
-
-isolated linux sandbox e2e:
-
-```bash
-make sandbox-linux
-```
-
-ci also runs:
-
-- linux docker sandbox e2e: `tests/sandbox/linux-sandbox-e2e.sh`
-- windows vm smoke: `tests/sandbox/windows-vm-smoke.ps1`
-
-## branding assets
-
-- canonical logo source: `assets/icon/tailstick-logo.png`
-- windows executable icon resources: `cmd/tailstick-windows-*/resource_windows_amd64.syso`
-- gui favicon asset: `internal/gui/tailstick-favicon.png`
-
-regenerate windows icon resources after logo updates:
-
-```bash
-make icons
-```
-
 ## documentation
 
 - [architecture](docs/architecture.md)
@@ -143,10 +116,6 @@ make icons
 - [testing](docs/testing.md)
 - [release runbook](docs/release-runbook.md)
 - [plan](PLAN.md)
-
-## disclaimer
-
-this project is for legitimate administrative use on machines you own or are explicitly authorized to manage. it does not attempt stealth installation or stealth removal.
 
 ## license
 
