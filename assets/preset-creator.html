@@ -117,6 +117,17 @@ details.adv summary::-webkit-details-marker{display:none}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:3px}
+
+.help-toggle{display:flex;justify-content:flex-end;padding-top:18px}
+.help-toggle button{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:var(--r);padding:6px 10px;font:inherit;font-size:12px;cursor:pointer}
+.help-toggle button:hover{color:var(--t1);border-color:var(--border-focus)}
+.help-panel{display:none;margin-top:14px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg-input);padding:16px}
+.help-panel.open{display:block}
+.help-panel h3{font-size:13px;margin-bottom:10px;color:var(--t1)}
+.help-panel dl{display:grid;grid-template-columns:minmax(150px,220px) 1fr;gap:8px 14px}
+.help-panel dt{color:var(--t1);font-size:12px;font-weight:600}
+.help-panel dd{color:var(--t2);font-size:12px;margin:0}
+@media(max-width:700px){.help-panel dl{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -132,6 +143,9 @@ details.adv summary::-webkit-details-marker{display:none}
   </div>
 
   <hr>
+
+  <div class="help-toggle"><button id="toggleHelp" type="button">Explain all fields</button></div>
+  <div class="help-panel" id="helpPanel"><h3>Preset field guide</h3><dl id="helpList"></dl></div>
 
   <div id="presetList"></div>
 
@@ -181,6 +195,8 @@ details.adv summary::-webkit-details-marker{display:none}
   };
 
   function tip(key){return ' <span class="tip" data-tip="'+esc(TIPS[key])+'">&#9432;</span>'}
+
+  var FIELD_LABELS={mode:'Mode',channel:'Version channel',days:'Duration',suffix:'Device suffix',opw:'Operator password',ax:'Allow existing install',id:'Preset ID',desc:'Description',ak:'Auth key',ake:'Auth key env var',eak:'Ephemeral auth key',eake:'Ephemeral auth key env var',svo:'Stable version override',ar:'Accept routes',aen:'Allow exit node selection',cdd:'Device delete enabled',ct:'Tailnet',cak:'API key',cake:'API key env var',ls:'Linux stable install',ll:'Linux latest install',ws:'Windows stable install',wl:'Windows latest install',lu:'Linux uninstall',wu:'Windows uninstall'};
 
   function addPreset(){
     var id=++uid;
@@ -415,6 +431,10 @@ details.adv summary::-webkit-details-marker{display:none}
     a.click();
     URL.revokeObjectURL(a.href);
   });
+  function renderHelp(){var html='';Object.keys(FIELD_LABELS).forEach(function(key){html+='<dt>'+esc(FIELD_LABELS[key])+'</dt><dd>'+esc(TIPS[key])+'</dd>'});$('helpList').innerHTML=html}
+
+  $('toggleHelp').addEventListener('click',function(){var panel=$('helpPanel');var open=panel.classList.toggle('open');$('toggleHelp').textContent=open?'Hide field explanations':'Explain all fields'});
+
   $('copyBtn').addEventListener('click',function(){
     navigator.clipboard.writeText($('output').textContent).then(function(){
       $('copyBtn').textContent='Copied';
@@ -428,6 +448,8 @@ details.adv summary::-webkit-details-marker{display:none}
     if(el.id&&el.id.endsWith('_tagIn')){e.preventDefault();addTag(parseInt(el.id.split('_')[0].slice(1)))}
     if(el.id&&el.id.endsWith('_enIn')){e.preventDefault();addNode(parseInt(el.id.split('_')[0].slice(1)))}
   });
+
+  renderHelp();
 
   // Show one preset by default
   addPreset();

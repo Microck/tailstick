@@ -38,15 +38,12 @@ jobs:
       - name: Build artifacts
         run: |
           mkdir -p dist
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o dist/tailstick-${{ matrix.goos }}-cli${{ matrix.ext }} ./cmd/tailstick-${{ matrix.goos }}-cli
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o dist/tailstick-${{ matrix.goos }}-gui${{ matrix.ext }} ./cmd/tailstick-${{ matrix.goos }}-gui
-
-      - name: Archive artifacts
-        run: |
-          cd dist
-          tar -czf tailstick-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz *
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o dist/tailstick-cli-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} ./cmd/tailstick-${{ matrix.goos }}-cli
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o dist/tailstick-gui-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} ./cmd/tailstick-${{ matrix.goos }}-gui
 
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/tailstick-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+          files: |
+            dist/tailstick-cli-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
+            dist/tailstick-gui-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}

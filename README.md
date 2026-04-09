@@ -35,90 +35,59 @@ tailstick currently targets:
 - windows (administrator shell required)
 - debian/ubuntu linux with `systemd` (root required)
 
-### 1. download the latest release
+1. Open the latest release on GitHub and download the two files for your machine: the CLI binary and the GUI binary.
+2. Put both binaries in a working folder on the USB or target machine.
+3. Create a `tailstick.config.json` file in that same folder.
+4. Add the secrets your preset needs before you run anything.
+5. Launch the CLI for scripted use, or launch the GUI if you want the browser-based operator flow.
 
-Download the archive for the machine you are using from [GitHub Releases](https://github.com/Microck/tailstick/releases/latest).
+Get the binaries from [GitHub Releases](https://github.com/Microck/tailstick/releases/latest).
 
-linux amd64:
+### config file
 
-```bash
-curl -L -o tailstick-linux-amd64.tar.gz https://github.com/Microck/tailstick/releases/latest/download/tailstick-linux-amd64.tar.gz
-tar -xzf tailstick-linux-amd64.tar.gz
-```
+TailStick expects a `tailstick.config.json` next to the binaries.
 
-linux arm64:
+You can:
 
-```bash
-curl -L -o tailstick-linux-arm64.tar.gz https://github.com/Microck/tailstick/releases/latest/download/tailstick-linux-arm64.tar.gz
-tar -xzf tailstick-linux-arm64.tar.gz
-```
+- copy `configs/tailstick.config.example.json` and edit it manually, or
+- use the optional [preset maker](https://tailstick.micr.dev/) to generate a starting config file
 
-windows amd64 (powershell):
+The preset maker is optional. It just helps you build `tailstick.config.json` faster and explains the fields.
 
-```powershell
-Invoke-WebRequest -Uri https://github.com/Microck/tailstick/releases/latest/download/tailstick-windows-amd64.tar.gz -OutFile tailstick-windows-amd64.tar.gz
-tar -xzf tailstick-windows-amd64.tar.gz
-```
+### what you need before first run
 
-windows arm64 (powershell):
+Most setups need these values available at runtime:
 
-```powershell
-Invoke-WebRequest -Uri https://github.com/Microck/tailstick/releases/latest/download/tailstick-windows-arm64.tar.gz -OutFile tailstick-windows-arm64.tar.gz
-tar -xzf tailstick-windows-arm64.tar.gz
-```
+- a Tailscale auth key for normal installs
+- a Tailscale ephemeral auth key for session-only installs
+- a Tailscale API key if you want device cleanup through the API
+- an operator password only if you want password-gated use
 
-### 2. place your config next to the binaries
+By default these are usually supplied through environment variables such as:
 
-Create `tailstick.config.json` next to the extracted CLI and GUI binaries.
+- `TAILSTICK_AUTH_KEY`
+- `TAILSTICK_EPHEMERAL_AUTH_KEY`
+- `TAILSTICK_API_KEY`
+- `TAILSTICK_OPERATOR_PASSWORD`
 
-If you are preparing it from this repo:
+### using the preset maker
 
-```bash
-cp configs/tailstick.config.example.json tailstick.config.json
-```
+The preset maker helps generate a config file. Use it if you want a faster way to define presets, install commands, cleanup behavior, and allowed options for operators.
 
-### 3. provide runtime secrets
+Use the generated JSON as your `tailstick.config.json` file.
 
-```bash
-export TAILSTICK_AUTH_KEY='tskey-auth-...'
-export TAILSTICK_EPHEMERAL_AUTH_KEY='tskey-auth-...'
-export TAILSTICK_API_KEY='tskey-api-...'
-# optional, only when operator password gating is enabled
-export TAILSTICK_OPERATOR_PASSWORD='choose-a-strong-password'
-```
+### running tailstick
 
-### 4. create a lease
+Use the CLI when you want a direct command-based flow.
 
-Run a timed lease:
+Use the GUI when you want a local browser form for the operator.
 
-```bash
-./tailstick-linux-cli run   --preset ops-readonly   --mode timed   --days 3   --channel stable
-```
+Typical examples:
 
-Start the GUI launcher:
+- `tailstick-cli-linux-amd64 run ...`
+- `tailstick-gui-windows-amd64.exe`
 
-```bash
-./tailstick-linux-gui
-```
-
-The GUI opens a local browser tab and also prints the localhost URL.
-
-For remote preview or lab access on a specific interface:
-
-```bash
-./tailstick-linux-gui --host 0.0.0.0 --port 18080 --open-browser=false
-```
-
-### building from source
-
-Most operators should use the release archives above. Building from source is only needed for local development:
-
-```bash
-go build -o tailstick-linux-cli ./cmd/tailstick-linux-cli
-go build -o tailstick-linux-gui ./cmd/tailstick-linux-gui
-go build -o tailstick-windows-cli.exe ./cmd/tailstick-windows-cli
-go build -o tailstick-windows-gui.exe ./cmd/tailstick-windows-gui
-```
+If you want to build from source for development, the repo still supports that, but normal operators should use release binaries instead.
 
 ## platform support
 
