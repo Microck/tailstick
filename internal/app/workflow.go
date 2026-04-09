@@ -404,18 +404,7 @@ func (m *Manager) installLinuxAgent(ctx context.Context, agentPath string) error
 	servicePath := "/etc/systemd/system/tailstick-agent.service"
 	timerPath := "/etc/systemd/system/tailstick-agent.timer"
 
-	service := fmt.Sprintf(`[Unit]
-Description=TailStick lease agent
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=%q agent run --once --config %q --state %q --audit %q --log %q
-
-[Install]
-WantedBy=multi-user.target
-`, agentPath, m.Runtime.ConfigPath, m.Runtime.StatePath, m.Runtime.AuditPath, m.Runtime.LogPath)
+	service := linuxAgentServiceContent(agentPath, m.Runtime)
 	timer := `[Unit]
 Description=TailStick lease agent timer
 
@@ -597,9 +586,24 @@ func windowsScheduledTaskCommand(launcherPath string) string {
 func windowsAgentLauncherContent(agentPath string, rt Runtime) string {
 	return strings.Join([]string{
 		"@echo off",
-		fmt.Sprintf(`"%s" agent run --config "%s" --state "%s" --audit "%s" --log "%s"`, agentPath, rt.ConfigPath, rt.StatePath, rt.AuditPath, rt.LogPath),
+		fmt.Sprintf(`"%s" agent --once --config "%s" --state "%s" --audit "%s" --log "%s"`, agentPath, rt.ConfigPath, rt.StatePath, rt.AuditPath, rt.LogPath),
 		"",
 	}, "\r\n")
+}
+
+func linuxAgentServiceContent(agentPath string, rt Runtime) string {
+	return fmt.Sprintf(`[Unit]
+Description=TailStick lease agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%q agent --once --config %q --state %q --audit %q --log %q
+
+[Install]
+WantedBy=multi-user.target
+`, agentPath, rt.ConfigPath, rt.StatePath, rt.AuditPath, rt.LogPath)
 }
 
 func linuxAgentInstallCommands() [][]string {

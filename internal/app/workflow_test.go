@@ -326,6 +326,12 @@ func TestWindowsScheduledTaskCommandUsesShortLauncher(t *testing.T) {
 			t.Fatalf("launcher body missing %q", want)
 		}
 	}
+	if !strings.Contains(launcherBody, "agent --once") {
+		t.Fatalf("launcher body should invoke one-shot agent mode, got %q", launcherBody)
+	}
+	if strings.Contains(launcherBody, "agent run") {
+		t.Fatalf("launcher body should not use unsupported nested agent run form, got %q", launcherBody)
+	}
 }
 
 func TestLinuxAgentInstallCommandsStartOnlyTheTimer(t *testing.T) {
@@ -347,6 +353,34 @@ func TestLinuxAgentInstallCommandsStartOnlyTheTimer(t *testing.T) {
 		if len(cmd) >= 3 && cmd[0] == "systemctl" && cmd[1] == "start" && cmd[2] == "tailstick-agent.service" {
 			t.Fatalf("install sequence must not start the oneshot service directly: %v", cmd)
 		}
+	}
+}
+
+func TestLinuxAgentServiceContentUsesAgentOnce(t *testing.T) {
+	rt := Runtime{
+		ConfigPath: "/tmp/tailstick.config.json",
+		StatePath:  "/tmp/state.json",
+		AuditPath:  "/tmp/audit.ndjson",
+		LogPath:    "/tmp/tailstick.log",
+	}
+
+	body := linuxAgentServiceContent("/usr/local/bin/tailstick-agent", rt)
+	for _, want := range []string{
+		"/usr/local/bin/tailstick-agent",
+		rt.ConfigPath,
+		rt.StatePath,
+		rt.AuditPath,
+		rt.LogPath,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("service body missing %q", want)
+		}
+	}
+	if !strings.Contains(body, "agent --once") {
+		t.Fatalf("service body should invoke one-shot agent mode, got %q", body)
+	}
+	if strings.Contains(body, "agent run") {
+		t.Fatalf("service body should not use unsupported nested agent run form, got %q", body)
 	}
 }
 
