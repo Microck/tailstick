@@ -15,6 +15,7 @@ const (
 	DefaultConfigFile = "tailstick.config.json"
 )
 
+// Load reads and parses the YAML config file.
 func Load(path string) (model.Config, error) {
 	if path == "" {
 		path = DefaultConfigFile
@@ -40,6 +41,7 @@ func Load(path string) (model.Config, error) {
 	return cfg, nil
 }
 
+// Validate checks config for required fields and logical consistency.
 func Validate(cfg model.Config) error {
 	if len(cfg.Presets) == 0 {
 		return errors.New("config must define at least one preset")
@@ -65,6 +67,7 @@ func Validate(cfg model.Config) error {
 	return nil
 }
 
+// FindPreset returns a preset by ID, or an error if not found.
 func FindPreset(cfg model.Config, id string) (model.Preset, error) {
 	if id == "" {
 		id = cfg.DefaultPreset
@@ -80,6 +83,7 @@ func FindPreset(cfg model.Config, id string) (model.Preset, error) {
 	return model.Preset{}, fmt.Errorf("preset %q not found", id)
 }
 
+// ResolvePath expands ~ and resolves relative paths against a base directory.
 func ResolvePath(baseDir, path string) string {
 	if path == "" {
 		return ""
@@ -90,6 +94,7 @@ func ResolvePath(baseDir, path string) string {
 	return filepath.Join(baseDir, path)
 }
 
+// ResolvePresetSecrets decrypts encrypted preset secrets using the local key.
 func ResolvePresetSecrets(p model.Preset) model.Preset {
 	out := p
 	if strings.TrimSpace(out.AuthKey) == "" && strings.TrimSpace(out.AuthKeyEnv) != "" {

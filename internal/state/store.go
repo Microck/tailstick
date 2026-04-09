@@ -10,6 +10,7 @@ import (
 	"github.com/tailstick/tailstick/internal/model"
 )
 
+// Load reads and parses the state file into a Store.
 func Load(path string) (model.LocalState, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -31,6 +32,7 @@ func Load(path string) (model.LocalState, error) {
 	return st, nil
 }
 
+// Save writes the current state to disk.
 func Save(path string, st model.LocalState) error {
 	st.SchemaVersion = 1
 	st.UpdatedAt = time.Now().UTC()
@@ -49,6 +51,7 @@ func Save(path string, st model.LocalState) error {
 	return os.Rename(tmp, path)
 }
 
+// UpsertRecord adds or updates a lease record by LeaseID.
 func UpsertRecord(st model.LocalState, rec model.LeaseRecord) model.LocalState {
 	for i := range st.Records {
 		if st.Records[i].LeaseID == rec.LeaseID {
@@ -60,6 +63,7 @@ func UpsertRecord(st model.LocalState, rec model.LeaseRecord) model.LocalState {
 	return st
 }
 
+// AppendAudit appends an audit entry to the audit log file.
 func AppendAudit(path string, entry model.AuditEntry) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err

@@ -39,6 +39,7 @@ type enrollRequest struct {
 	Password      string `json:"password"`
 }
 
+// Run starts the HTTP server for the GUI, serving the embedded UI and API endpoints.
 func Run(ctx context.Context, srv *Server, openBrowser bool, host string, port int) error {
 	host = strings.TrimSpace(host)
 	if host == "" {
@@ -134,7 +135,7 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 		b, _ := staticFS.ReadFile("tailstick-favicon.png")
 		w.Header().Set("Content-Type", "image/png")
 		w.Header().Set("Cache-Control", "public, max-age=86400")
-		w.Write(b)
+		_, _ = w.Write(b)
 		return
 	}
 	if r.URL.Path != "/" {
@@ -143,7 +144,7 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	}
 	b, _ := staticFS.ReadFile("index.html")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(b)
+	_, _ = w.Write(b)
 }
 
 func writeJSON(w http.ResponseWriter, data any) {

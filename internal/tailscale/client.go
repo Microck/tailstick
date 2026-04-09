@@ -131,6 +131,7 @@ func (c Client) Uninstall(ctx context.Context, preset model.Preset) error {
 	return err
 }
 
+// DeleteDevice removes a device from the Tailscale tailnet using the API.
 func DeleteDevice(ctx context.Context, apiKey, deviceID string) error {
 	if strings.TrimSpace(apiKey) == "" || strings.TrimSpace(deviceID) == "" {
 		return nil
@@ -188,6 +189,7 @@ func uninstallCommand(preset model.Preset) []string {
 	return []string{"bash", "-lc", "apt-get remove -y tailscale"}
 }
 
+// BuildMachineContext constructs a stable machine identifier string from OS, arch, hostname, and machine-id.
 func BuildMachineContext(host, _ string) string {
 	info := []string{runtime.GOOS, runtime.GOARCH, strings.ToLower(strings.TrimSpace(host))}
 	if runtime.GOOS == "linux" {
@@ -198,6 +200,7 @@ func BuildMachineContext(host, _ string) string {
 	return strings.Join(info, "|")
 }
 
+// ParseDurationDays validates and returns the lease duration in days based on the mode.
 func ParseDurationDays(mode model.LeaseMode, defaultDays, customDays int) (int, error) {
 	switch mode {
 	case model.LeaseModeSession:
@@ -222,6 +225,7 @@ func ParseDurationDays(mode model.LeaseMode, defaultDays, customDays int) (int, 
 	}
 }
 
+// Future returns a pointer to the time that is days after ts, or nil if days is non-positive.
 func Future(ts time.Time, days int) *time.Time {
 	if days <= 0 {
 		return nil

@@ -15,6 +15,7 @@ type Logger struct {
 	std  *log.Logger
 }
 
+// New creates a leveled logger that writes to the specified log file.
 func New(path string) (*Logger, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return nil, err

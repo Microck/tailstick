@@ -21,6 +21,7 @@ type Envelope struct {
 	Cipher string `json:"cipher"`
 }
 
+// Encrypt encrypts plaintext using AES-GCM with the configured key.
 func Encrypt(plain, password, machineContext string) (string, error) {
 	key, salt, mode, err := deriveKey(password, machineContext)
 	if err != nil {
@@ -52,6 +53,7 @@ func Encrypt(plain, password, machineContext string) (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
+// Decrypt decrypts an AES-GCM ciphertext produced by Encrypt.
 func Decrypt(encoded, password, machineContext string) (string, error) {
 	raw, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {

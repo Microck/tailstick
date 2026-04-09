@@ -39,6 +39,7 @@ type Manager struct {
 	HostCtx platform.Context
 }
 
+// NewManager creates a Manager initialized with the given runtime configuration.
 func NewManager(rt Runtime) (*Manager, error) {
 	host, err := platform.Detect()
 	if err != nil {

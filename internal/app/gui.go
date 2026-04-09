@@ -8,6 +8,7 @@ import (
 	"github.com/tailstick/tailstick/internal/gui"
 )
 
+// RunGUI starts the web UI server for interactive lease creation.
 func RunGUI(args []string, rt Runtime) int {
 	fs := flag.NewFlagSet("gui", flag.ContinueOnError)
 	var (

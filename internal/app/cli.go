@@ -15,6 +15,7 @@ import (
 
 const Version = "1.0.0"
 
+// RunCLI dispatches the CLI subcommand and returns an exit code.
 func RunCLI(args []string, rt Runtime) int {
 	if len(args) == 0 {
 		return runEnroll(args, rt)

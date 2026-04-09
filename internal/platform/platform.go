@@ -19,6 +19,7 @@ type Context struct {
 	ExePath string
 }
 
+// Detect returns the current platform identifier.
 func Detect() (Context, error) {
 	host, err := os.Hostname()
 	if err != nil {
@@ -39,9 +40,12 @@ func Detect() (Context, error) {
 	return ctx, nil
 }
 
+// IsLinux reports whether the current OS is Linux.
 func IsLinux() bool   { return runtime.GOOS == "linux" }
+// IsWindows reports whether the current OS is Windows.
 func IsWindows() bool { return runtime.GOOS == "windows" }
 
+// StatePath returns the default path for the state file.
 func StatePath() string {
 	if IsWindows() {
 		root := os.Getenv("ProgramData")
@@ -53,6 +57,7 @@ func StatePath() string {
 	return "/var/lib/tailstick/state.json"
 }
 
+// LogPath returns the default path for the log file.
 func LogPath() string {
 	if IsWindows() {
 		root := os.Getenv("ProgramData")
@@ -64,6 +69,7 @@ func LogPath() string {
 	return "/var/log/tailstick.log"
 }
 
+// LocalSecretPath returns the default path for the local secret key.
 func LocalSecretPath() string {
 	if IsWindows() {
 		root := os.Getenv("ProgramData")
@@ -75,6 +81,7 @@ func LocalSecretPath() string {
 	return "/var/lib/tailstick/secrets"
 }
 
+// AgentBinaryPath returns the default path for the agent binary.
 func AgentBinaryPath() string {
 	if IsWindows() {
 		root := os.Getenv("ProgramData")
@@ -86,6 +93,7 @@ func AgentBinaryPath() string {
 	return "/var/lib/tailstick/tailstick-agent"
 }
 
+// EnsureParent creates the parent directory of the given path if it does not exist.
 func EnsureParent(path string) error {
 	parent := filepath.Dir(path)
 	if err := os.MkdirAll(parent, 0o755); err != nil {
@@ -137,6 +145,7 @@ func sanitizeHost(in string) string {
 	return strings.Trim(string(out), "-")
 }
 
+// RequireSupportedLinux panics if the OS is not a supported Linux distribution.
 func RequireSupportedLinux() error {
 	if !IsLinux() {
 		return nil
@@ -152,6 +161,7 @@ func RequireSupportedLinux() error {
 	return errors.New("linux target unsupported: only debian/ubuntu are supported in v1")
 }
 
+// IsElevated reports whether the process is running with elevated privileges.
 func IsElevated() bool {
 	if IsLinux() {
 		return os.Geteuid() == 0
@@ -164,6 +174,7 @@ func IsElevated() bool {
 	return true
 }
 
+// ElevationHint returns a platform-specific suggestion for obtaining elevated privileges.
 func ElevationHint(exePath string, args []string) string {
 	if IsLinux() {
 		return "rerun with sudo"
