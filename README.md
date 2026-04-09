@@ -35,31 +35,22 @@ tailstick currently targets:
 - windows (administrator shell required)
 - debian/ubuntu linux with `systemd` (root required)
 
-### linux or macos (build from source)
+### 1. download the latest release
 
-```bash
-git clone https://github.com/Microck/tailstick.git
-cd tailstick
-go build -o tailstick-linux-cli ./cmd/tailstick-linux-cli
-go build -o tailstick-linux-gui ./cmd/tailstick-linux-gui
-```
-
-### windows (build from source)
-
-```powershell
-git clone https://github.com/Microck/tailstick.git
-cd tailstick
-go build -o tailstick-windows-cli.exe ./cmd/tailstick-windows-cli
-go build -o tailstick-windows-gui.exe ./cmd/tailstick-windows-gui
-```
-
-### download release assets (recommended)
+Download the archive for the machine you are using from [GitHub Releases](https://github.com/Microck/tailstick/releases/latest).
 
 linux amd64:
 
 ```bash
 curl -L -o tailstick-linux-amd64.tar.gz https://github.com/Microck/tailstick/releases/latest/download/tailstick-linux-amd64.tar.gz
 tar -xzf tailstick-linux-amd64.tar.gz
+```
+
+linux arm64:
+
+```bash
+curl -L -o tailstick-linux-arm64.tar.gz https://github.com/Microck/tailstick/releases/latest/download/tailstick-linux-arm64.tar.gz
+tar -xzf tailstick-linux-arm64.tar.gz
 ```
 
 windows amd64 (powershell):
@@ -69,15 +60,24 @@ Invoke-WebRequest -Uri https://github.com/Microck/tailstick/releases/latest/down
 tar -xzf tailstick-windows-amd64.tar.gz
 ```
 
-### first run
+windows arm64 (powershell):
 
-place `tailstick.config.json` next to your selected binary:
+```powershell
+Invoke-WebRequest -Uri https://github.com/Microck/tailstick/releases/latest/download/tailstick-windows-arm64.tar.gz -OutFile tailstick-windows-arm64.tar.gz
+tar -xzf tailstick-windows-arm64.tar.gz
+```
+
+### 2. place your config next to the binaries
+
+Create `tailstick.config.json` next to the extracted CLI and GUI binaries.
+
+If you are preparing it from this repo:
 
 ```bash
 cp configs/tailstick.config.example.json tailstick.config.json
 ```
 
-provide runtime secrets through env vars:
+### 3. provide runtime secrets
 
 ```bash
 export TAILSTICK_AUTH_KEY='tskey-auth-...'
@@ -87,28 +87,37 @@ export TAILSTICK_API_KEY='tskey-api-...'
 export TAILSTICK_OPERATOR_PASSWORD='choose-a-strong-password'
 ```
 
-run a timed lease:
+### 4. create a lease
+
+Run a timed lease:
 
 ```bash
-./tailstick-linux-cli run \
-  --preset ops-readonly \
-  --mode timed \
-  --days 3 \
-  --channel stable
+./tailstick-linux-cli run   --preset ops-readonly   --mode timed   --days 3   --channel stable
 ```
 
-start the gui launcher:
+Start the GUI launcher:
 
 ```bash
 ./tailstick-linux-gui
 ```
 
-the gui opens a local browser tab and also prints the localhost url.
+The GUI opens a local browser tab and also prints the localhost URL.
 
-for remote preview/testing on a specific interface:
+For remote preview or lab access on a specific interface:
 
 ```bash
 ./tailstick-linux-gui --host 0.0.0.0 --port 18080 --open-browser=false
+```
+
+### building from source
+
+Most operators should use the release archives above. Building from source is only needed for local development:
+
+```bash
+go build -o tailstick-linux-cli ./cmd/tailstick-linux-cli
+go build -o tailstick-linux-gui ./cmd/tailstick-linux-gui
+go build -o tailstick-windows-cli.exe ./cmd/tailstick-windows-cli
+go build -o tailstick-windows-gui.exe ./cmd/tailstick-windows-gui
 ```
 
 ## platform support

@@ -2,7 +2,7 @@ package gui
 
 import (
 	"context"
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -17,6 +17,9 @@ import (
 	"github.com/tailstick/tailstick/internal/config"
 	"github.com/tailstick/tailstick/internal/model"
 )
+
+//go:embed index.html tailstick-favicon.png
+var staticFS embed.FS
 
 type Server struct {
 	ConfigPath string
@@ -48,8 +51,6 @@ func Run(ctx context.Context, srv *Server, openBrowser bool, host string, port i
 	listenAddr := net.JoinHostPort(host, strconv.Itoa(port))
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", srv.index)
-	mux.HandleFunc("/favicon.ico", srv.favicon)
-	mux.HandleFunc("/favicon.png", srv.favicon)
 	mux.HandleFunc("/api/presets", srv.presets)
 	mux.HandleFunc("/api/enroll", srv.enroll)
 
@@ -129,14 +130,20 @@ func (s *Server) enroll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) index(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/favicon.ico" {
+		b, _ := staticFS.ReadFile("tailstick-favicon.png")
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.Write(b)
+		return
+	}
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	b, _ := staticFS.ReadFile("index.html")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte(indexHTML))
-}
-
-func (s *Server) favicon(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "public, max-age=86400")
-	w.Header().Set("Content-Type", "image/png")
-	_, _ = w.Write(faviconPNG)
+	w.Write(b)
 }
 
 func writeJSON(w http.ResponseWriter, data any) {
@@ -161,9 +168,3 @@ func open(url string) error {
 	}
 	return cmd.Start()
 }
-
-//go:embed tailstick-favicon.png
-var faviconPNG []byte
-
-//go:embed index.html
-var indexHTML string

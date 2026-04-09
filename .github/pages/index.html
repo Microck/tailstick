@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tailstick</title>
+<link rel="icon" type="image/png" href="https://github.com/Microck/tailstick/raw/main/assets/icon/tailstick-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1F1E1E;
+  --bg-input:#2E2D2D;
+  --border:rgba(255,255,255,.07);
+  --border-focus:rgba(79,124,255,.45);
+  --t1:#edf0f5;
+  --t2:#a8b0be;
+  --t3:#727a88;
+  --t4:#505662;
+  --btn:#444342;
+  --btn-h:#555452;
+  --green:#34d399;
+  --red:#f87171;
+  --r:5px;
+}
+html{font-size:14px;background:var(--bg);color:var(--t1)}
+body{font-family:'Geist',system-ui,-apple-system,sans-serif;letter-spacing:-.012em;line-height:1.5;-webkit-font-smoothing:antialiased;padding:0;margin:0}
+
+.page{max-width:760px;margin:0 auto;padding:32px 24px 64px}
+
+.hdr{display:flex;align-items:center;padding-bottom:16px}
+.hdr .logo{height:22px;width:auto;flex-shrink:0}
+.hdr-right{margin-left:auto;display:flex;align-items:center}
+.hdr-right a{color:var(--t3);transition:color .15s;display:flex;align-items:center}
+.hdr-right a:hover{color:var(--t1)}
+.hdr-right svg{width:20px;height:20px;fill:currentColor}
+
+hr{border:none;border-top:1px solid var(--border);margin:0}
+
+.sec{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;padding:20px 0 10px}
+.sec.sm{padding:18px 0 6px}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+@media(max-width:600px){.g2{grid-template-columns:1fr}}
+.f{display:flex;flex-direction:column;gap:3px}
+.f.w{grid-column:1/-1}
+.fw{display:flex;flex-direction:column;gap:10px}
+.f label{font-size:11px;font-weight:500;color:var(--t3);display:flex;align-items:center;gap:4px}
+.f select,.f input[type=text],.f input[type=number],.f input[type=password]{
+  background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);
+  padding:7px 9px;color:var(--t1);font-family:inherit;font-size:13px;outline:none;transition:border .15s}
+.f select:focus,.f input:focus{border-color:var(--border-focus)}
+.f select option{background:var(--bg-input);color:var(--t1)}
+.f input::placeholder{color:var(--t4)}
+
+.tip{font-size:12px;color:var(--t4);cursor:help;position:relative;display:inline-flex;align-items:center;flex-shrink:0}
+.tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:6px 10px;
+  font-size:11px;color:var(--t2);white-space:normal;width:240px;z-index:10;line-height:1.5;letter-spacing:0;pointer-events:none}
+
+.ck{flex-direction:row;align-items:center;gap:7px;padding-top:8px}
+.ck input[type=checkbox]{
+  appearance:none;width:15px;height:15px;border:1px solid var(--border);border-radius:3px;
+  background:var(--bg-input);cursor:pointer;position:relative;flex-shrink:0}
+.ck input[type=checkbox]:checked{background:#4f7cff;border-color:#4f7cff}
+.ck input[type=checkbox]:checked::after{
+  content:'';position:absolute;left:4px;top:1px;width:4.5px;height:8.5px;
+  border:solid #fff;border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+.ck label{font-size:12px;color:var(--t2);cursor:pointer}
+
+.btn-row{display:flex;gap:8px;padding-top:14px}
+.btn{
+  background:var(--btn);color:#fff;border:none;border-radius:var(--r);
+  padding:7px 20px;font-family:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--btn-h)}
+.btn.primary{background:#181717}
+.btn.primary:hover{background:#2a2929}
+.btn.sm{padding:5px 12px;font-size:11px}
+
+.output{position:relative;margin-top:10px}
+.output pre{
+  background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px;font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace;
+  font-size:11.5px;color:var(--t2);line-height:1.6;overflow-x:auto;white-space:pre;
+  max-height:420px;overflow-y:auto}
+.output .copy{
+  position:absolute;top:8px;right:8px;background:var(--btn);color:#fff;border:none;
+  border-radius:4px;padding:4px 10px;font-family:inherit;font-size:10px;font-weight:600;
+  cursor:pointer;transition:background .15s}
+.output .copy:hover{background:var(--btn-h)}
+
+.preset-block{margin-bottom:0}
+.preset-head{display:none}
+
+details.adv{padding-top:18px}
+details.adv summary{
+  font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;
+  cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;padding-bottom:6px}
+details.adv summary::before{content:'\25B6';font-size:8px;transition:transform .15s;display:inline-block}
+details.adv[open] summary::before{transform:rotate(90deg)}
+details.adv summary::-webkit-details-marker{display:none}
+
+.tag-row{display:flex;flex-wrap:wrap;gap:5px;padding-top:4px}
+.tag{display:inline-flex;align-items:center;gap:4px;background:var(--bg-input);border:1px solid var(--border);
+  border-radius:3px;padding:2px 8px;font-size:11px;color:var(--t2)}
+.tag .x{cursor:pointer;color:var(--t4);font-size:13px;line-height:1}
+.tag .x:hover{color:var(--red)}
+
+.add-row{display:flex;gap:6px}
+.add-row input{flex:1}
+
+.empty{color:var(--t4);font-size:12px;padding:8px 0}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hdr">
+    <img class="logo" src="https://github.com/Microck/tailstick/raw/main/.github/assets/tailstick-logo-darkmode.svg" alt="TailStick">
+    <div class="hdr-right">
+      <a href="https://github.com/Microck/tailstick" target="_blank" rel="noopener" title="GitHub">
+        <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <hr>
+
+  <div id="presetList"></div>
+
+  <div class="sec" style="padding-top:32px">Output</div>
+  <div class="btn-row" style="padding-top:0">
+    <button class="btn" id="genBtn">Generate</button>
+    <button class="btn primary" id="dlBtn">Download JSON</button>
+  </div>
+  <div class="output" id="outputWrap" style="display:none;padding-top:10px">
+    <button class="copy" id="copyBtn">Copy</button>
+    <pre id="output"></pre>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var presets=[], uid=0, tags={}, nodes={};
+  var $=function(id){return document.getElementById(id)};
+
+  var TIPS = {
+    mode: 'Lease mode: session-only (ends on shutdown), timed lease (expires after N days), or permanent.',
+    channel: 'Tailscale version channel: stable (pinned) or latest (current upstream).',
+    days: 'Duration for timed leases in days. Select from presets or enter a custom value (1-30).',
+    suffix: 'Optional short label appended to the auto-generated device name.',
+    opw: 'Operator password required to authorize this enrollment, if the config demands one.',
+    ax: 'Enable if the target machine already has Tailscale installed. TailStick will adopt or replace instead of refusing.',
+    id: 'Unique identifier for this preset. Used to select it when creating a lease.',
+    desc: 'Human-readable description shown in the operator UI.',
+    ak: 'Tailscale auth key for stable device enrollment (tskey-auth-...).',
+    ake: 'Environment variable name that holds the auth key at runtime.',
+    eak: 'Tailscale ephemeral auth key for session-only disposable devices.',
+    eake: 'Environment variable name that holds the ephemeral auth key at runtime.',
+    svo: 'Override the global stable Tailscale version for this preset only.',
+    ar: 'Whether the enrolled device should accept subnet routes advertised on the tailnet.',
+    aen: 'Allow the operator to choose an exit node from the approved list when enrolling.',
+    cdd: 'Automatically delete the device from the tailnet when cleanup runs.',
+    ct: 'The Tailscale tailnet name used for API-based cleanup operations.',
+    cak: 'Tailscale API key with permission to delete devices (tskey-api-...).',
+    cake: 'Environment variable name that holds the cleanup API key at runtime.',
+    ls: 'Shell command to install the pinned stable Tailscale version on Linux.',
+    ll: 'Shell command to install the latest Tailscale version on Linux.',
+    ws: 'Command to install the pinned stable Tailscale version on Windows.',
+    wl: 'Command to install the latest Tailscale version on Windows.',
+    lu: 'Shell command to uninstall Tailscale on Linux.',
+    wu: 'Command to uninstall Tailscale on Windows.'
+  };
+
+  function tip(key){return ' <span class="tip" data-tip="'+esc(TIPS[key])+'">&#9432;</span>'}
+
+  function addPreset(){
+    var id=++uid;
+    presets.push(id);
+    tags[id]=[];
+    nodes[id]=[];
+    buildPresetDOM(id);
+  }
+
+  function removePreset(id){
+    presets=presets.filter(function(i){return i!==id});
+    delete tags[id];
+    delete nodes[id];
+    var el=$('pb'+id);
+    if(el) el.remove();
+  }
+
+  function updateEmpty(){
+    var el=$('presetList');
+    var empty=el.querySelector('.empty');
+    if(presets.length){if(empty)empty.remove()}
+    else if(!empty) el.innerHTML='<div class="empty">No presets defined. Add one to get started.</div>';
+  }
+
+  function buildPresetDOM(id){
+    var p='p'+id;
+    var div=document.createElement('div');
+    div.className='preset-block';
+    div.id='pb'+id;
+
+    div.innerHTML=
+      '<div class="sec sm">Create Lease</div>'+
+      '<div class="g2">'+
+        '<div class="f"><label>Mode'+tip('mode')+'</label>'+
+          '<select id="'+p+'_mode">'+
+            '<option value="session">Session-only</option>'+
+            '<option value="timed" selected>Timed lease</option>'+
+            '<option value="permanent">Permanent</option>'+
+          '</select>'+
+        '</div>'+
+        '<div class="f"><label>Version'+tip('channel')+'</label>'+
+          '<select id="'+p+'_channel">'+
+            '<option value="stable" selected>Stable</option>'+
+            '<option value="latest">Latest</option>'+
+          '</select>'+
+        '</div>'+
+        '<div class="f" id="'+p+'_daysF"><label>Duration'+tip('days')+'</label>'+
+          '<select id="'+p+'_days">'+
+            '<option value="1">1 day</option>'+
+            '<option value="3" selected>3 days</option>'+
+            '<option value="7">7 days</option>'+
+            '<option value="custom">Custom...</option>'+
+          '</select>'+
+        '</div>'+
+        '<div class="f" id="'+p+'_cdf" style="display:none"><label>Custom days</label>'+
+          '<input type="number" id="'+p+'_cd" min="1" max="30" value="5" placeholder="1-30">'+
+        '</div>'+
+      '</div>'+
+
+      '<div class="sec sm">Options</div>'+
+      '<div class="g2">'+
+        '<div class="f"><label>Device suffix'+tip('suffix')+'</label><input type="text" id="'+p+'_suffix" placeholder="optional" maxlength="16"></div>'+
+        '<div class="f"><label>Operator password'+tip('opw')+'</label><input type="password" id="'+p+'_opw" placeholder="if required"></div>'+
+        '<div class="f ck"><input type="checkbox" id="'+p+'_ax"><label for="'+p+'_ax">Allow existing Tailscale install'+tip('ax')+'</label></div>'+
+      '</div>'+
+
+      '<div class="sec sm">Identity</div>'+
+      '<div class="g2">'+
+        '<div class="f"><label>ID'+tip('id')+'</label><input type="text" id="'+p+'_id" placeholder="e.g. ops-readonly"></div>'+
+        '<div class="f"><label>Description'+tip('desc')+'</label><input type="text" id="'+p+'_desc" placeholder="optional"></div>'+
+        '<div class="f"><label>Auth key'+tip('ak')+'</label><input type="text" id="'+p+'_ak" placeholder="tskey-auth-..."></div>'+
+        '<div class="f"><label>Auth key env var'+tip('ake')+'</label><input type="text" id="'+p+'_ake" placeholder="e.g. TAILSTICK_AUTH_KEY"></div>'+
+        '<div class="f"><label>Ephemeral auth key'+tip('eak')+'</label><input type="text" id="'+p+'_eak" placeholder="tskey-auth-..."></div>'+
+        '<div class="f"><label>Ephemeral auth key env var'+tip('eake')+'</label><input type="text" id="'+p+'_eake" placeholder="e.g. TAILSTICK_EPHEMERAL_AUTH_KEY"></div>'+
+        '<div class="f"><label>Stable version override'+tip('svo')+'</label><input type="text" id="'+p+'_svo" placeholder="optional"></div>'+
+      '</div>'+
+
+      '<div class="sec sm">Tags</div>'+
+      '<div class="f w">'+
+        '<div class="add-row"><input type="text" id="'+p+'_tagIn" placeholder="tag:ops-usb"><button class="btn sm" data-addtag="'+id+'">Add</button></div>'+
+        '<div class="tag-row" id="'+p+'_tags"></div>'+
+      '</div>'+
+
+      '<div class="sec sm">Network</div>'+
+      '<div class="g2">'+
+        '<div class="f ck"><input type="checkbox" id="'+p+'_ar"><label for="'+p+'_ar">Accept routes'+tip('ar')+'</label></div>'+
+        '<div class="f ck"><input type="checkbox" id="'+p+'_aen"><label for="'+p+'_aen">Allow exit node selection'+tip('aen')+'</label></div>'+
+      '</div>'+
+      '<div class="f w" style="padding-top:10px">'+
+        '<label>Approved exit nodes</label>'+
+        '<div class="add-row"><input type="text" id="'+p+'_enIn" placeholder="exit1.example.ts.net"><button class="btn sm" data-addnode="'+id+'">Add</button></div>'+
+        '<div class="tag-row" id="'+p+'_nodes"></div>'+
+      '</div>'+
+
+      '<div class="sec sm">Cleanup</div>'+
+      '<div class="g2">'+
+        '<div class="f"><label>Tailnet'+tip('ct')+'</label><input type="text" id="'+p+'_ct" placeholder="example.com"></div>'+
+        '<div class="f"><label>API key'+tip('cak')+'</label><input type="text" id="'+p+'_cak" placeholder="tskey-api-..."></div>'+
+        '<div class="f"><label>API key env var'+tip('cake')+'</label><input type="text" id="'+p+'_cake" placeholder="e.g. TAILSTICK_API_KEY"></div>'+
+        '<div class="f ck"><input type="checkbox" id="'+p+'_cdd"><label for="'+p+'_cdd">Device delete enabled'+tip('cdd')+'</label></div>'+
+      '</div>'+
+
+      '<details class="adv">'+
+        '<summary>Advanced options</summary>'+
+        '<div class="fw" style="padding-top:6px">'+
+          '<div class="f w"><label>Linux stable'+tip('ls')+'</label><input type="text" id="'+p+'_ls" placeholder="curl ... | sh"></div>'+
+          '<div class="f w"><label>Linux latest'+tip('ll')+'</label><input type="text" id="'+p+'_ll" placeholder="curl ... | sh"></div>'+
+          '<div class="f w"><label>Windows stable'+tip('ws')+'</label><input type="text" id="'+p+'_ws" placeholder="winget install ..."></div>'+
+          '<div class="f w"><label>Windows latest'+tip('wl')+'</label><input type="text" id="'+p+'_wl" placeholder="winget install ..."></div>'+
+          '<div class="f w"><label>Linux uninstall'+tip('lu')+'</label><input type="text" id="'+p+'_lu" placeholder="apt-get remove ..."></div>'+
+          '<div class="f w"><label>Windows uninstall'+tip('wu')+'</label><input type="text" id="'+p+'_wu" placeholder="winget uninstall ..."></div>'+
+        '</div>'+
+      '</details>';
+
+    $('presetList').appendChild(div);
+
+    div.querySelector('[data-addtag="'+id+'"]').addEventListener('click',function(){addTag(id)});
+    div.querySelector('[data-addnode="'+id+'"]').addEventListener('click',function(){addNode(id)});
+
+    // Mode/days toggle
+    $(p+'_mode').addEventListener('change',function(){
+      var show=$(p+'_mode').value==='timed';
+      $(p+'_daysF').style.display=show?'':'none';
+      if(!show)$(p+'_cdf').style.display='none';
+    });
+    $(p+'_days').addEventListener('change',function(){
+      var show=$(p+'_days').value==='custom'&&$(p+'_mode').value==='timed';
+      $(p+'_cdf').style.display=show?'':'none';
+    });
+
+    $(p+'_id').addEventListener('input',function(){
+      var v=val('p'+id+'_id');
+      var el=$('p'+id+'_disp');
+      if(el) el.textContent=v?v:'Untitled preset';
+    });
+  }
+
+  function addTag(id){
+    var v=val('p'+id+'_tagIn');
+    if(!v)return;
+    tags[id].push(v);
+    $('p'+id+'_tagIn').value='';
+    renderTags(id);
+  }
+  function removeTag(id,i){tags[id].splice(i,1);renderTags(id)}
+  function renderTags(id){
+    var el=$('p'+id+'_tags');if(!el)return;
+    el.innerHTML=tags[id].map(function(t,i){
+      return '<span class="tag">'+esc(t)+' <span class="x" data-rt="'+id+'_'+i+'">&times;</span></span>';
+    }).join('');
+    el.querySelectorAll('[data-rt]').forEach(function(s){
+      var parts=s.dataset.rt.split('_');
+      s.addEventListener('click',function(){removeTag(parseInt(parts[0]),parseInt(parts[1]))});
+    });
+  }
+
+  function addNode(id){
+    var v=val('p'+id+'_enIn');
+    if(!v)return;
+    nodes[id].push(v);
+    $('p'+id+'_enIn').value='';
+    renderNodes(id);
+  }
+  function removeNode(id,i){nodes[id].splice(i,1);renderNodes(id)}
+  function renderNodes(id){
+    var el=$('p'+id+'_nodes');if(!el)return;
+    el.innerHTML=nodes[id].map(function(n,i){
+      return '<span class="tag">'+esc(n)+' <span class="x" data-rn="'+id+'_'+i+'">&times;</span></span>';
+    }).join('');
+    el.querySelectorAll('[data-rn]').forEach(function(s){
+      var parts=s.dataset.rn.split('_');
+      s.addEventListener('click',function(){removeNode(parseInt(parts[0]),parseInt(parts[1]))});
+    });
+  }
+
+  function val(id){var el=$(id);return el?el.value.trim():''}
+  function chk(id){var el=$(id);return el?el.checked:false}
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+  function generate(){
+    var cfg={presets:[]};
+    presets.forEach(function(id){
+      var k='p'+id,p={};
+      var pidv=val(k+'_id');if(!pidv)return;
+      p.id=pidv;
+      p.defaultMode=val(k+'_mode')||'timed';
+      p.defaultChannel=val(k+'_channel')||'stable';
+      var dv=val(k+'_days');
+      var mode=val(k+'_mode');
+      if(mode==='timed'){
+        if(dv==='custom'){var cd=parseInt(val(k+'_cd'))||0;if(cd)p.defaultDays=cd}
+        else{var nd=parseInt(dv);if(nd)p.defaultDays=nd}
+      }
+      var d;d=val(k+'_desc');if(d)p.description=d;
+      d=val(k+'_ak');if(d)p.authKey=d;
+      d=val(k+'_ake');if(d)p.authKeyEnv=d;
+      d=val(k+'_eak');if(d)p.ephemeralAuthKey=d;
+      d=val(k+'_eake');if(d)p.ephemeralAuthKeyEnv=d;
+      if(tags[id].length)p.tags=tags[id].slice();
+      p.acceptRoutes=chk(k+'_ar');
+      p.allowExitNodeSelection=chk(k+'_aen');
+      if(nodes[id].length)p.approvedExitNodes=nodes[id].slice();
+      d=val(k+'_svo');if(d)p.stableVersionOverride=d;
+      p.install={};
+      d=val(k+'_ls');if(d)p.install.linuxStable=[d];
+      d=val(k+'_ll');if(d)p.install.linuxLatest=[d];
+      d=val(k+'_ws');if(d)p.install.windowsStable=[d];
+      d=val(k+'_wl');if(d)p.install.windowsLatest=[d];
+      d=val(k+'_lu');if(d)p.install.linuxUninstall=[d];
+      d=val(k+'_wu');if(d)p.install.windowsUninstall=[d];
+      p.cleanup={};
+      d=val(k+'_ct');if(d)p.cleanup.tailnet=d;
+      d=val(k+'_cak');if(d)p.cleanup.apiKey=d;
+      d=val(k+'_cake');if(d)p.cleanup.apiKeyEnv=d;
+      p.cleanup.deviceDeleteEnabled=chk(k+'_cdd');
+      cfg.presets.push(p);
+    });
+    var json=JSON.stringify(cfg,null,2);
+    $('output').textContent=json;
+    $('outputWrap').style.display='';
+    return cfg;
+  }
+
+  $('genBtn').addEventListener('click',generate);
+  $('dlBtn').addEventListener('click',function(){
+    generate();
+    var json=$('output').textContent;
+    var blob=new Blob([json],{type:'application/json'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='tailstick.config.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  $('copyBtn').addEventListener('click',function(){
+    navigator.clipboard.writeText($('output').textContent).then(function(){
+      $('copyBtn').textContent='Copied';
+      setTimeout(function(){$('copyBtn').textContent='Copy'},1500);
+    });
+  });
+
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Enter')return;
+    var el=e.target;
+    if(el.id&&el.id.endsWith('_tagIn')){e.preventDefault();addTag(parseInt(el.id.split('_')[0].slice(1)))}
+    if(el.id&&el.id.endsWith('_enIn')){e.preventDefault();addNode(parseInt(el.id.split('_')[0].slice(1)))}
+  });
+
+  // Show one preset by default
+  addPreset();
+})();
+</script>
+</body>
+</html>

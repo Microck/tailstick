@@ -1,677 +1,266 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="icon" type="image/png" href="/favicon.png" />
-  <title>TailStick</title>
-  <style>
-    :root {
-      --blue-500: #4b70cc;
-      --blue-600: #3f5db3;
-      --gray-0: #faf9f8;
-      --gray-50: #f9f7f6;
-      --gray-100: #f7f5f4;
-      --gray-200: #eeebea;
-      --gray-300: #dad6d5;
-      --gray-500: #706e6d;
-      --gray-700: #2e2d2d;
-      --gray-900: #1f1e1e;
-      --red-500: #d04841;
-      --white: #ffffff;
-      --ring: 0 0 0 3px rgba(63, 93, 179, 0.2);
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tailstick</title>
+<link rel="icon" type="image/png" href="/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1F1E1E;
+  --bg-input:#2E2D2D;
+  --border:rgba(255,255,255,.07);
+  --border-focus:rgba(79,124,255,.45);
+  --t1:#edf0f5;
+  --t2:#a8b0be;
+  --t3:#727a88;
+  --t4:#505662;
+  --btn:#444342;
+  --btn-h:#555452;
+  --green:#34d399;
+  --red:#f87171;
+  --r:5px;
+}
+html{font-size:14px;background:var(--bg);color:var(--t1)}
+body{font-family:'Geist',system-ui,-apple-system,sans-serif;letter-spacing:-.012em;line-height:1.5;-webkit-font-smoothing:antialiased;padding:0;margin:0}
 
-    * {
-      box-sizing: border-box;
-    }
+.page{max-width:680px;margin:0 auto;padding:32px 24px 48px}
 
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      background: var(--gray-100);
-      color: var(--gray-900);
-      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      letter-spacing: -0.01em;
-      line-height: 1.5;
-    }
+/* Divider */
+hr{border:none;border-top:1px solid var(--border);margin:0}
 
-    .announce {
-      background: #252423;
-      color: #f4f3f2;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.13);
-      text-align: center;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-size: 0.72rem;
-      font-weight: 600;
-      padding: 10px 16px;
-    }
+/* Section label */
+.sec{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;padding:20px 0 10px}
 
-    .announce span {
-      opacity: 0.9;
-    }
+/* Form grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+@media(max-width:520px){.g2{grid-template-columns:1fr}}
+.f{display:flex;flex-direction:column;gap:3px}
+.f.w{grid-column:1/-1}
+.f label{font-size:11px;font-weight:500;color:var(--t3)}
+.f select,.f input[type=text],.f input[type=number],.f input[type=password]{
+  background:var(--bg-input);border:1px solid var(--border);border-radius:var(--r);
+  padding:7px 9px;color:var(--t1);font-family:inherit;font-size:13px;outline:none;transition:border .15s}
+.f select:focus,.f input:focus{border-color:var(--border-focus)}
+.f select option{background:#2E2D2D;color:var(--t1)}
+.f input::placeholder{color:var(--t4)}
+.f .sub{font-size:10px;color:var(--t4);padding-top:1px}
 
-    .announce a {
-      color: inherit;
-      margin-left: 10px;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
+/* Check */
+.ck{flex-direction:row;align-items:center;gap:7px;padding-top:6px}
+.ck input[type=checkbox]{
+  appearance:none;width:15px;height:15px;border:1px solid var(--border);border-radius:3px;
+  background:var(--bg-input);cursor:pointer;position:relative;flex-shrink:0}
+.ck input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+.ck input[type=checkbox]:checked::after{
+  content:'';position:absolute;left:4px;top:1px;width:4.5px;height:8.5px;
+  border:solid #fff;border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+.ck label{font-size:12px;color:var(--t2);cursor:pointer}
+.tip{font-size:13px;color:var(--t4);cursor:help;position:relative;display:inline-flex;align-items:center}
+.tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:#2E2D2D;border:1px solid var(--border);border-radius:4px;padding:6px 10px;
+  font-size:11px;color:var(--t2);white-space:normal;width:260px;z-index:10;line-height:1.5;letter-spacing:0}
 
-    .nav {
-      background: var(--white);
-      border-bottom: 1px solid var(--gray-300);
-      padding: 0 18px;
-    }
+/* Submit */
+.sub-row{display:flex;justify-content:flex-end;padding-top:14px}
+.btn{
+  background:var(--btn);color:#fff;border:none;border-radius:var(--r);
+  padding:7px 20px;font-family:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;transition:background .15s,opacity .15s}
+.btn:hover{background:var(--btn-h)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
 
-    .nav-inner {
-      max-width: 1180px;
-      margin: 0 auto;
-      min-height: 72px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-    }
+.hdr{display:flex;align-items:center;padding-bottom:16px}
+.hdr .logo{height:22px;width:auto;flex-shrink:0}
+.hdr-right{margin-left:auto;display:flex;align-items:center}
+.hdr-right a{color:var(--t3);transition:color .15s;display:flex;align-items:center}
+.hdr-right a:hover{color:var(--t1)}
+.hdr-right svg{width:20px;height:20px;fill:currentColor}
 
-    .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--gray-900);
-      text-decoration: none;
-      letter-spacing: -0.02em;
-      font-size: 2rem;
-      font-weight: 650;
-    }
+/* Result */
+.res{padding:14px 0}
+.res.s{border-left:2px solid var(--green);padding-left:14px}
+.res.e{border-left:2px solid var(--red);padding-left:14px}
+.res h3{font-size:13px;font-weight:600;margin-bottom:6px}
+.res.s h3{color:var(--green)}
+.res.e h3{color:var(--red)}
+.res .d{font-size:12px;color:var(--t2);line-height:1.6}
+.res .d code{background:var(--bg-input);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--t1)}
 
-    .brand img {
-      width: 22px;
-      height: 22px;
-      border-radius: 6px;
-      border: 1px solid var(--gray-300);
-      background: #fff;
-      flex: 0 0 auto;
-    }
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.06);border-radius:3px}
 
-    .brand span {
-      font-size: 2.02rem;
-      font-weight: 680;
-      line-height: 1;
-      text-transform: lowercase;
-    }
-
-    .nav-links {
-      display: inline-flex;
-      align-items: center;
-      gap: 28px;
-      color: var(--gray-700);
-      font-size: 1rem;
-      font-weight: 500;
-    }
-
-    .nav-links a {
-      text-decoration: none;
-      color: inherit;
-      white-space: nowrap;
-    }
-
-    .nav-links a:hover {
-      color: var(--gray-900);
-    }
-
-    .nav-right {
-      display: inline-flex;
-      align-items: center;
-      gap: 16px;
-      font-size: 0.98rem;
-    }
-
-    .login {
-      color: var(--gray-700);
-      text-decoration: none;
-      font-weight: 500;
-      white-space: nowrap;
-    }
-
-    .login:hover {
-      color: var(--gray-900);
-    }
-
-    .cta {
-      border: 0;
-      border-radius: 12px;
-      background: var(--gray-900);
-      color: #fff;
-      text-decoration: none;
-      white-space: nowrap;
-      font-size: 0.97rem;
-      font-weight: 600;
-      padding: 10px 16px;
-      letter-spacing: -0.015em;
-      box-shadow: 0 8px 16px rgba(31, 30, 30, 0.18);
-    }
-
-    .page {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 36px 18px 42px;
-    }
-
-    .hero {
-      text-align: center;
-      margin: 0 auto;
-      max-width: 980px;
-    }
-
-    .hero h1 {
-      margin: 0;
-      font-size: clamp(2.35rem, 6vw, 5.06rem);
-      line-height: 1.03;
-      letter-spacing: -0.05em;
-      color: #2b2a2a;
-      text-wrap: balance;
-      font-weight: 540;
-    }
-
-    .hero p {
-      margin: 22px auto 0;
-      max-width: 880px;
-      color: var(--gray-500);
-      font-size: clamp(1.05rem, 1.75vw, 2rem);
-      line-height: 1.45;
-      letter-spacing: -0.02em;
-      text-wrap: pretty;
-    }
-
-    .hero-actions {
-      margin-top: 22px;
-      display: inline-flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .hero-actions .primary {
-      border: 0;
-      border-radius: 10px;
-      background: var(--gray-900);
-      color: #fff;
-      padding: 11px 18px;
-      font-size: 0.98rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      text-decoration: none;
-    }
-
-    .hero-actions .secondary {
-      color: var(--gray-700);
-      text-underline-offset: 3px;
-      font-size: 0.98rem;
-      font-weight: 500;
-    }
-
-    .mode-strip {
-      margin-top: 32px;
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .mode {
-      border: 1px solid var(--gray-300);
-      border-radius: 14px;
-      background: var(--white);
-      min-height: 118px;
-      padding: 13px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .mode strong {
-      font-size: 1.02rem;
-      line-height: 1.2;
-      letter-spacing: -0.02em;
-      color: var(--gray-900);
-      font-weight: 620;
-    }
-
-    .mode span {
-      color: var(--gray-500);
-      font-size: 0.86rem;
-      line-height: 1.42;
-    }
-
-    .mode.active {
-      border-color: var(--red-500);
-      background: var(--red-500);
-    }
-
-    .mode.active strong,
-    .mode.active span {
-      color: #fff;
-    }
-
-    .workspace {
-      margin-top: 18px;
-      border: 1px solid var(--gray-300);
-      border-radius: 20px;
-      background: #f5f3f2;
-      box-shadow: 0 14px 34px rgba(31, 30, 30, 0.08);
-      padding: 24px;
-    }
-
-    .workspace-head {
-      margin-bottom: 14px;
-    }
-
-    .workspace-head h2 {
-      margin: 0;
-      font-size: 1.96rem;
-      line-height: 1.12;
-      letter-spacing: -0.04em;
-      color: var(--gray-900);
-      font-weight: 560;
-    }
-
-    .workspace-head p {
-      margin: 7px 0 0;
-      font-size: 0.96rem;
-      color: var(--gray-500);
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .field {
-      display: grid;
-      gap: 6px;
-    }
-
-    .field label {
-      color: var(--gray-700);
-      font-size: 0.85rem;
-      font-weight: 520;
-      letter-spacing: -0.01em;
-    }
-
-    input, select {
-      width: 100%;
-      border: 1px solid var(--gray-300);
-      border-radius: 10px;
-      background: var(--white);
-      color: var(--gray-900);
-      font-size: 0.95rem;
-      padding: 11px 12px;
-      line-height: 1.3;
-      transition: border-color 120ms ease, box-shadow 120ms ease;
-    }
-
-    input::placeholder {
-      color: var(--gray-500);
-    }
-
-    input:focus, select:focus {
-      outline: none;
-      border-color: var(--blue-600);
-      box-shadow: var(--ring);
-    }
-
-    input[disabled], select[disabled] {
-      background: var(--gray-100);
-      color: var(--gray-500);
-      cursor: not-allowed;
-    }
-
-    .check-row {
-      margin-top: 12px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .check {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--gray-700);
-      font-size: 0.87rem;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .check input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      margin: 0;
-      accent-color: var(--blue-600);
-    }
-
-    .run-btn {
-      margin-top: 12px;
-      width: 100%;
-      border: 0;
-      border-radius: 11px;
-      background: var(--blue-500);
-      color: #fff;
-      font-size: 1.02rem;
-      font-weight: 620;
-      letter-spacing: -0.01em;
-      padding: 12px 16px;
-      cursor: pointer;
-      transition: transform 100ms ease, background-color 120ms ease;
-    }
-
-    .run-btn:hover {
-      background: var(--blue-600);
-    }
-
-    .run-btn:active {
-      transform: translateY(1px);
-    }
-
-    .run-btn[disabled] {
-      opacity: 0.75;
-      cursor: wait;
-    }
-
-    .output {
-      margin-top: 12px;
-      border: 1px solid #253570;
-      border-radius: 13px;
-      background: linear-gradient(180deg, #24356f, #1e2c5c);
-      color: #dfe7ff;
-      min-height: 138px;
-      max-height: 260px;
-      overflow: auto;
-      padding: 12px;
-      font-size: 0.79rem;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-    }
-
-    @media (max-width: 1180px) {
-      .mode-strip {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 920px) {
-      .announce {
-        font-size: 0.66rem;
-      }
-
-      .nav-links {
-        display: none;
-      }
-
-      .hero-actions {
-        flex-direction: column;
-        align-items: stretch;
-        width: min(420px, 100%);
-      }
-
-      .hero-actions .primary {
-        width: 100%;
-      }
-
-      .mode-strip,
-      .form-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .nav-inner {
-        min-height: 66px;
-      }
-
-      .brand span {
-        font-size: 1.6rem;
-      }
-
-      .login {
-        display: none;
-      }
-
-      .page {
-        padding-top: 26px;
-      }
-
-      .hero h1 {
-        font-size: clamp(2rem, 11vw, 3.2rem);
-      }
-
-      .mode-strip,
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .workspace {
-        border-radius: 16px;
-        padding: 18px;
-      }
-    }
-  </style>
+.spin{display:inline-block;width:12px;height:12px;border:1.5px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:sp .55s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
-  <div class="announce">
-    <span>TailStick USB launcher is now available for controlled operator workflows.</span>
-    <a href="#">Read more</a>
+<div class="page">
+
+  <div class="hdr">
+    <img class="logo" src="https://raw.githubusercontent.com/Microck/tailstick/main/.github/assets/tailstick-logo-darkmode.svg" alt="tailstick">
+    <div class="hdr-right">
+      <a href="https://github.com/Microck/tailstick" target="_blank" rel="noopener" title="GitHub">
+        <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+    </div>
   </div>
 
-  <header class="nav">
-    <div class="nav-inner">
-      <a class="brand" href="#">
-        <img src="/favicon.png" alt="TailStick icon" />
-        <span>tailstick</span>
-      </a>
-      <nav class="nav-links" aria-label="Primary">
-        <a href="#">Platform +</a>
-        <a href="#">Customer Stories +</a>
-        <a href="#">Community +</a>
-        <a href="#">Pricing</a>
-      </nav>
-      <div class="nav-right">
-        <a class="login" href="#">Login</a>
-        <a class="cta" href="#">Get started - it's free!</a>
+  <hr>
+
+  <form id="f" autocomplete="off">
+    <div class="sec">Create Lease</div>
+    <div class="g2">
+
+      <div class="f">
+        <label for="mode">Mode</label>
+        <select id="mode" name="mode">
+          <option value="session">Session-only</option>
+          <option value="timed" selected>Timed lease</option>
+          <option value="permanent">Permanent</option>
+        </select>
       </div>
+
+      <div class="f">
+        <label for="channel">Version</label>
+        <select id="channel" name="channel">
+          <option value="stable" selected>Stable</option>
+          <option value="latest">Latest</option>
+        </select>
+      </div>
+
+      <div class="f" id="daysF">
+        <label for="days">Duration</label>
+        <select id="days" name="days">
+          <option value="1">1 day</option>
+          <option value="3" selected>3 days</option>
+          <option value="7">7 days</option>
+          <option value="custom">Custom...</option>
+        </select>
+      </div>
+
+      <div class="f" id="cdf" style="display:none">
+        <label for="cd">Custom days</label>
+        <input type="number" id="cd" name="cd" min="1" max="30" value="5" placeholder="1-30">
+        <span class="sub">1 - 30 days</span>
+      </div>
+
+      <div class="f w" id="presetWrap" style="display:none">
+        <label for="preset">Preset</label>
+        <select id="preset" name="preset"></select>
+        <div class="sub" id="presetDesc"></div>
+      </div>
+
     </div>
-  </header>
 
-  <main class="page">
-    <section class="hero">
-      <h1>The best secure connectivity launcher for USB-based onboarding</h1>
-      <p>
-        A Zero Trust identity-driven workflow for temporary and permanent machine access, with deterministic
-        cleanup that keeps your tailnet free of stale devices.
-      </p>
-      <div class="hero-actions">
-        <a href="#" class="primary">Start connecting devices</a>
-        <a href="#" class="secondary">Contact sales</a>
-      </div>
-    </section>
+    <div class="sec">Options</div>
+    <div class="g2">
 
-    <section class="mode-strip" aria-label="Lease modes">
-      <article class="mode active">
-        <strong>Session Lease</strong>
-        <span>Removes on reboot and startup cleanup cycles.</span>
-      </article>
-      <article class="mode">
-        <strong>Timed Lease</strong>
-        <span>Preset or custom-day expiration windows.</span>
-      </article>
-      <article class="mode">
-        <strong>Permanent</strong>
-        <span>Leaves a normal managed Tailscale installation.</span>
-      </article>
-      <article class="mode">
-        <strong>Stable Channel</strong>
-        <span>Pinned known-good install path for operators.</span>
-      </article>
-      <article class="mode">
-        <strong>Latest Channel</strong>
-        <span>Tracks newest release for quick validation.</span>
-      </article>
-    </section>
-
-    <section class="workspace">
-      <div class="workspace-head">
-        <h2>TailStick Launcher</h2>
-        <p>Create a lease from your configured presets.</p>
+      <div class="f">
+        <label for="suffix">Device suffix</label>
+        <input type="text" id="suffix" name="suffix" placeholder="optional" maxlength="16">
       </div>
 
-      <div class="form-grid">
-        <div class="field">
-          <label for="preset">Preset</label>
-          <select id="preset"></select>
-        </div>
-        <div class="field">
-          <label for="mode">Mode</label>
-          <select id="mode">
-            <option value="session">Session</option>
-            <option value="timed">Timed</option>
-            <option value="permanent">Permanent</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="channel">Channel</label>
-          <select id="channel">
-            <option value="stable">Stable</option>
-            <option value="latest">Latest</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="days">Days</label>
-          <select id="days">
-            <option value="1">1</option>
-            <option value="3" selected>3</option>
-            <option value="7">7</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="customDays">Custom Days</label>
-          <input id="customDays" type="number" min="1" max="30" value="0" disabled />
-        </div>
-        <div class="field">
-          <label for="suffix">Device Suffix</label>
-          <input id="suffix" placeholder="optional-label" />
-        </div>
-        <div class="field">
-          <label for="exitNode">Exit Node</label>
-          <input id="exitNode" placeholder="approved-exit-node" />
-        </div>
-        <div class="field">
-          <label for="password">Operator Password (optional)</label>
-          <input id="password" type="password" />
-        </div>
+      <div class="f">
+        <label for="password">Operator password</label>
+        <input type="password" id="password" name="password" placeholder="if required">
       </div>
 
-      <div class="check-row">
-        <label class="check"><input id="useCustomDays" type="checkbox" /> Enable custom days</label>
-        <label class="check"><input id="allowExisting" type="checkbox" /> Allow existing Tailscale install</label>
+      <div class="f ck">
+        <input type="checkbox" id="ax" name="allowExisting">
+        <label for="ax">Allow existing Tailscale install</label>
+        <span class="tip" data-tip="Enable this if the target machine already has Tailscale installed. TailStick will adopt or replace the existing installation instead of refusing.">&#9432;</span>
       </div>
 
-      <button id="run" class="run-btn" type="button">Create Lease</button>
-      <pre id="out" class="output">Ready.</pre>
-    </section>
-  </main>
+    </div>
 
-  <script>
-    const out = document.getElementById("out");
-    const runButton = document.getElementById("run");
-    const customDays = document.getElementById("customDays");
-    const useCustomDays = document.getElementById("useCustomDays");
+    <div class="sub-row">
+      <button type="submit" class="btn" id="go">Create Lease</button>
+    </div>
+  </form>
 
-    function log(v) {
-      out.textContent = typeof v === "string" ? v : JSON.stringify(v, null, 2);
-    }
+  <div id="res"></div>
 
-    async function loadPresets() {
-      const response = await fetch("/api/presets");
-      const data = await response.json();
-      const select = document.getElementById("preset");
-      select.innerHTML = "";
+</div>
 
-      const presets = Array.isArray(data.presets) ? data.presets : [];
-      if (presets.length === 0) {
-        const empty = document.createElement("option");
-        empty.value = "";
-        empty.textContent = "No presets available";
-        select.appendChild(empty);
-        return;
-      }
+<script>
+(function(){
+  var presets=[];
+  var $=function(id){return document.getElementById(id)};
 
-      for (const preset of presets) {
-        const option = document.createElement("option");
-        option.value = preset.id;
-        option.textContent = preset.id + " - " + (preset.description || "");
-        if (data.defaultPreset && preset.id === data.defaultPreset) {
-          option.selected = true;
-        }
-        select.appendChild(option);
-      }
-    }
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
-    useCustomDays.addEventListener("change", (event) => {
-      customDays.disabled = !event.target.checked;
-      if (!event.target.checked) {
-        customDays.value = "0";
-      } else if (Number(customDays.value) <= 0) {
-        customDays.value = "14";
-      }
+  function loadPresets(){
+    fetch('/api/presets').then(function(r){return r.json()}).then(function(data){
+      presets=data.presets||[];
+      var sel=$('preset');sel.innerHTML='';
+      presets.forEach(function(p){
+        var o=document.createElement('option');o.value=p.id;o.textContent=p.id;sel.appendChild(o);
+      });
+      if(data.defaultPreset)sel.value=data.defaultPreset;
+      $('presetWrap').style.display=presets.length>1?'':'none';
+      upDesc();
+    }).catch(function(){});
+  }
+
+  function selP(){
+    var id=$('preset').value;
+    for(var i=0;i<presets.length;i++)if(presets[i].id===id)return presets[i];
+    return null;
+  }
+  function upDesc(){var p=selP();$('presetDesc').textContent=p&&p.description?p.description:''}
+
+  function upMode(){
+    var m=$('mode').value;
+    $('daysF').style.display=m==='timed'?'':'none';
+    if(m!=='timed')$('cdf').style.display='none';
+  }
+  function upCust(){var s=$('days').value==='custom'&&$('mode').value==='timed';$('cdf').style.display=s?'':'none'}
+
+  $('preset').addEventListener('change',function(){upDesc()});
+  $('mode').addEventListener('change',function(){upMode()});
+  $('days').addEventListener('change',function(){upCust()});
+
+  $('f').addEventListener('submit',function(e){
+    e.preventDefault();
+    var btn=$('go');btn.disabled=true;btn.innerHTML='<span class="spin"></span>Enrolling...';
+    var mode=$('mode').value,dv=$('days').value;
+    var days=mode==='timed'?(dv==='custom'?0:parseInt(dv,10)):0;
+    var cd=dv==='custom'?parseInt($('cd').value,10):0;
+    var body={presetId:$('preset').value,mode:mode,channel:$('channel').value,
+      days:days,customDays:cd,suffix:$('suffix').value,exitNode:'',
+      allowExisting:$('ax').checked,password:$('password').value};
+    fetch('/api/enroll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(function(r){return r.json()}).then(function(data){
+      btn.disabled=false;btn.textContent='Create Lease';
+      if(data.ok)showRes('s',data);else showRes('e',data);
+    }).catch(function(e){
+      btn.disabled=false;btn.textContent='Create Lease';
+      showRes('e',{error:e.message});
     });
+  });
 
-    runButton.addEventListener("click", async () => {
-      const useCustom = useCustomDays.checked;
-      const body = {
-        presetId: document.getElementById("preset").value,
-        mode: document.getElementById("mode").value,
-        channel: document.getElementById("channel").value,
-        days: Number(document.getElementById("days").value),
-        customDays: useCustom ? Number(customDays.value) : 0,
-        suffix: document.getElementById("suffix").value,
-        exitNode: document.getElementById("exitNode").value,
-        allowExisting: document.getElementById("allowExisting").checked,
-        password: document.getElementById("password").value
-      };
+  function showRes(t,data){
+    var el=$('res');
+    if(t==='s'){
+      var exp=data.expiresAt?new Date(data.expiresAt).toLocaleString():'No expiry';
+      el.innerHTML='<div class="res s"><h3>Lease Created</h3><div class="d">'+
+        'Lease ID: <code>'+esc(data.leaseId)+'</code><br>'+
+        'Device: <code>'+esc(data.deviceName)+'</code><br>'+
+        'Mode: '+esc(data.mode)+'<br>'+
+        'Expires: '+esc(exp)+'</div></div>';
+    }else{
+      el.innerHTML='<div class="res e"><h3>Enrollment Failed</h3><div class="d">'+esc(data.error||'Unknown error')+'</div></div>';
+    }
+  }
 
-      runButton.disabled = true;
-      const previousLabel = runButton.textContent;
-      runButton.textContent = "Creating lease...";
-      log("Submitting lease request...");
-
-      try {
-        const response = await fetch("/api/enroll", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(body)
-        });
-
-        let data;
-        try {
-          data = await response.json();
-        } catch {
-          data = { ok: false, error: "server returned non-json response" };
-        }
-
-        log(data);
-      } catch (error) {
-        log(String(error));
-      } finally {
-        runButton.disabled = false;
-        runButton.textContent = previousLabel;
-      }
-    });
-
-    loadPresets().catch((error) => log(String(error)));
-  </script>
+  loadPresets();upMode();upCust();
+})();
+</script>
 </body>
 </html>

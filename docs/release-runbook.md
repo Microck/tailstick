@@ -34,14 +34,14 @@ make sandbox-linux
 
 ## Release Procedure
 
-Assume target version is `v0.1.0`:
+Assume target version is `v1.0.0`:
 
 ```bash
 git checkout main
 git pull --ff-only origin main
-git tag v0.1.0
+git tag v1.0.0
 git push origin main
-git push origin v0.1.0
+git push origin v1.0.0
 ```
 
 Tag push triggers the release workflow which builds and uploads:
@@ -63,8 +63,8 @@ gh run watch -R Microck/tailstick <run-id> --exit-status
 2. Verify release entry and assets:
 
 ```bash
-gh release view v0.1.0 -R Microck/tailstick
-gh release view v0.1.0 -R Microck/tailstick --json assets,url
+gh release view v1.0.0 -R Microck/tailstick
+gh release view v1.0.0 -R Microck/tailstick --json assets,url
 ```
 
 3. Optional post-release smoke:
@@ -79,8 +79,8 @@ If release workflow fails before artifacts are correct:
 3. Recreate and push corrected tag.
 
 ```bash
-git tag -d v0.1.0
-git push origin :refs/tags/v0.1.0
-git tag v0.1.0
-git push origin v0.1.0
+git tag -d v1.0.0
+git push origin :refs/tags/v1.0.0
+git tag v1.0.0
+git push origin v1.0.0
 ```

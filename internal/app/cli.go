@@ -13,7 +13,7 @@ import (
 	"github.com/tailstick/tailstick/internal/model"
 )
 
-const Version = "0.1.0"
+const Version = "1.0.0"
 
 func RunCLI(args []string, rt Runtime) int {
 	if len(args) == 0 {
