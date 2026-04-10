@@ -79,6 +79,9 @@ hr{border:none;border-top:1px solid var(--border);margin:0}
 .btn.primary{background:#181717}
 .btn.primary:hover{background:#2a2929}
 .btn.sm{padding:5px 12px;font-size:11px}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--t2)}
+.btn.ghost:hover{background:var(--bg-input);color:var(--t1)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
 
 .output{position:relative;margin-top:10px}
 .output pre{
@@ -93,7 +96,10 @@ hr{border:none;border-top:1px solid var(--border);margin:0}
 .output .copy:hover{background:var(--btn-h)}
 
 .preset-block{margin-bottom:0}
-.preset-head{display:none}
+.preset-block+.preset-block{border-top:1px solid var(--border);margin-top:24px;padding-top:6px}
+.preset-controls{display:flex;justify-content:flex-end;padding-top:18px}
+.preset-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px}
+.preset-title{font-size:12px;font-weight:600;color:var(--t2);letter-spacing:.02em}
 
 details.adv{padding-top:18px}
 details.adv summary{
@@ -128,6 +134,11 @@ details.adv summary::-webkit-details-marker{display:none}
 .help-panel dt{color:var(--t1);font-size:12px;font-weight:600}
 .help-panel dd{color:var(--t2);font-size:12px;margin:0}
 @media(max-width:700px){.help-panel dl{grid-template-columns:1fr}}
+.error-panel{display:none;margin-top:18px;border:1px solid rgba(248,113,113,.35);border-radius:var(--r);background:rgba(127,29,29,.18);padding:12px 14px}
+.error-panel h3{font-size:12px;font-weight:600;color:#fecaca;margin-bottom:6px}
+.error-panel ul{margin-left:18px;color:#fca5a5;font-size:12px;display:flex;flex-direction:column;gap:4px}
+.field-error{font-size:11px;color:#fca5a5}
+.field-invalid{border-color:rgba(248,113,113,.55)!important}
 </style>
 </head>
 <body>
@@ -147,7 +158,9 @@ details.adv summary::-webkit-details-marker{display:none}
   <div class="help-toggle"><button id="toggleHelp" type="button">Explain all fields</button></div>
   <div class="help-panel" id="helpPanel"><h3>Preset field guide</h3><dl id="helpList"></dl></div>
 
+  <div class="preset-controls"><button class="btn ghost" id="addPresetBtn" type="button">Add preset</button></div>
   <div id="presetList"></div>
+  <div class="error-panel" id="errorPanel" role="alert"></div>
 
   <div class="sec" style="padding-top:32px">Output</div>
   <div class="btn-row" style="padding-top:0">
@@ -204,14 +217,17 @@ details.adv summary::-webkit-details-marker{display:none}
     tags[id]=[];
     nodes[id]=[];
     buildPresetDOM(id);
+    updatePresetHeaders();
   }
 
   function removePreset(id){
+    if(presets.length===1)return;
     presets=presets.filter(function(i){return i!==id});
     delete tags[id];
     delete nodes[id];
     var el=$('pb'+id);
     if(el) el.remove();
+    updatePresetHeaders();
   }
 
   function updateEmpty(){
@@ -228,6 +244,10 @@ details.adv summary::-webkit-details-marker{display:none}
     div.id='pb'+id;
 
     div.innerHTML=
+      '<div class="preset-head">'+
+        '<div class="preset-title" id="'+p+'_disp">Preset '+id+'</div>'+
+        '<button class="btn sm ghost" type="button" data-removepreset="'+id+'">Remove</button>'+
+      '</div>'+
       '<div class="sec sm">Create Lease</div>'+
       '<div class="g2">'+
         '<div class="f"><label>Mode'+tip('mode')+'</label>'+
@@ -315,6 +335,7 @@ details.adv summary::-webkit-details-marker{display:none}
 
     div.querySelector('[data-addtag="'+id+'"]').addEventListener('click',function(){addTag(id)});
     div.querySelector('[data-addnode="'+id+'"]').addEventListener('click',function(){addNode(id)});
+    div.querySelector('[data-removepreset="'+id+'"]').addEventListener('click',function(){removePreset(id)});
 
     // Mode/days toggle
     $(p+'_mode').addEventListener('change',function(){
@@ -328,9 +349,22 @@ details.adv summary::-webkit-details-marker{display:none}
     });
 
     $(p+'_id').addEventListener('input',function(){
-      var v=val('p'+id+'_id');
-      var el=$('p'+id+'_disp');
-      if(el) el.textContent=v?v:'Untitled preset';
+      updatePresetHeaders();
+    });
+  }
+
+  function updatePresetHeaders(){
+    presets.forEach(function(id,index){
+      var title=$('p'+id+'_disp');
+      if(title){
+        var v=val('p'+id+'_id');
+        title.textContent=v?v:'Preset '+(index+1);
+      }
+      var rm=document.querySelector('[data-removepreset="'+id+'"]');
+      if(rm){
+        rm.disabled=presets.length===1;
+        rm.style.visibility=presets.length===1?'hidden':'visible';
+      }
     });
   }
 
@@ -376,18 +410,70 @@ details.adv summary::-webkit-details-marker{display:none}
   function chk(id){var el=$(id);return el?el.checked:false}
   function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
+  function clearValidation(){
+    document.querySelectorAll('.field-error').forEach(function(el){el.remove()});
+    document.querySelectorAll('.field-invalid').forEach(function(el){
+      el.classList.remove('field-invalid');
+      el.removeAttribute('aria-invalid');
+    });
+    $('errorPanel').style.display='none';
+    $('errorPanel').innerHTML='';
+  }
+
+  function markFieldError(id,msg){
+    var el=$(id);
+    if(!el)return;
+    el.classList.add('field-invalid');
+    el.setAttribute('aria-invalid','true');
+    var wrap=el.closest('.f');
+    if(!wrap)return;
+    var err=document.createElement('div');
+    err.className='field-error';
+    err.textContent=msg;
+    wrap.appendChild(err);
+  }
+
+  function showValidation(errors){
+    if(!errors.length)return;
+    var panel=$('errorPanel');
+    panel.innerHTML='<h3>Fix the highlighted fields before generating JSON.</h3><ul>'+
+      errors.map(function(err){return '<li>'+esc(err.message)+'</li>'}).join('')+
+      '</ul>';
+    panel.style.display='block';
+    errors.forEach(function(err){if(err.fieldId)markFieldError(err.fieldId,err.message)});
+  }
+
   function generate(){
+    clearValidation();
     var cfg={presets:[]};
+    var errors=[];
+    var seenIds={};
     presets.forEach(function(id){
       var k='p'+id,p={};
-      var pidv=val(k+'_id');if(!pidv)return;
+      var pidv=val(k+'_id');
+      if(!pidv){
+        errors.push({fieldId:k+'_id',message:'Preset ID is required.'});
+        return;
+      }
+      if(seenIds[pidv]){
+        errors.push({fieldId:k+'_id',message:'Preset IDs must be unique.'});
+        return;
+      }
+      seenIds[pidv]=true;
       p.id=pidv;
       p.defaultMode=val(k+'_mode')||'timed';
       p.defaultChannel=val(k+'_channel')||'stable';
       var dv=val(k+'_days');
       var mode=val(k+'_mode');
       if(mode==='timed'){
-        if(dv==='custom'){var cd=parseInt(val(k+'_cd'))||0;if(cd)p.defaultDays=cd}
+        if(dv==='custom'){
+          var cd=Number(val(k+'_cd'));
+          if(!Number.isInteger(cd)||cd<1||cd>30){
+            errors.push({fieldId:k+'_cd',message:'Custom days must be an integer between 1 and 30.'});
+            return;
+          }
+          p.defaultDays=cd;
+        }
         else{var nd=parseInt(dv);if(nd)p.defaultDays=nd}
       }
       var d;d=val(k+'_desc');if(d)p.description=d;
@@ -414,6 +500,12 @@ details.adv summary::-webkit-details-marker{display:none}
       p.cleanup.deviceDeleteEnabled=chk(k+'_cdd');
       cfg.presets.push(p);
     });
+    if(errors.length){
+      showValidation(errors);
+      $('output').textContent='';
+      $('outputWrap').style.display='none';
+      return null;
+    }
     var json=JSON.stringify(cfg,null,2);
     $('output').textContent=json;
     $('outputWrap').style.display='';
@@ -422,7 +514,8 @@ details.adv summary::-webkit-details-marker{display:none}
 
   $('genBtn').addEventListener('click',generate);
   $('dlBtn').addEventListener('click',function(){
-    generate();
+    var cfg=generate();
+    if(!cfg)return;
     var json=$('output').textContent;
     var blob=new Blob([json],{type:'application/json'});
     var a=document.createElement('a');
@@ -431,6 +524,7 @@ details.adv summary::-webkit-details-marker{display:none}
     a.click();
     URL.revokeObjectURL(a.href);
   });
+  $('addPresetBtn').addEventListener('click',addPreset);
   function renderHelp(){var html='';Object.keys(FIELD_LABELS).forEach(function(key){html+='<dt>'+esc(FIELD_LABELS[key])+'</dt><dd>'+esc(TIPS[key])+'</dd>'});$('helpList').innerHTML=html}
 
   $('toggleHelp').addEventListener('click',function(){var panel=$('helpPanel');var open=panel.classList.toggle('open');$('toggleHelp').textContent=open?'Hide field explanations':'Explain all fields'});
