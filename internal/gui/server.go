@@ -1,3 +1,4 @@
+// Package gui serves a browser-based enrollment UI via an embedded HTTP server.
 package gui
 
 import (
@@ -21,6 +22,7 @@ import (
 //go:embed index.html tailstick-favicon.png
 var staticFS embed.FS
 
+// Server is the GUI HTTP handler holder with config path, logging, and enrollment callback.
 type Server struct {
 	ConfigPath string
 	Logf       func(format string, args ...any)
@@ -39,6 +41,8 @@ type enrollRequest struct {
 	Password      string `json:"password"`
 }
 
+// Run starts the GUI HTTP server on the given host:port, serving the embedded UI and API endpoints.
+// If openBrowser is true, it attempts to launch the system browser automatically.
 func Run(ctx context.Context, srv *Server, openBrowser bool, host string, port int) error {
 	host = strings.TrimSpace(host)
 	if host == "" {

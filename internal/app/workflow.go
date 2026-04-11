@@ -23,6 +23,7 @@ import (
 	"github.com/tailstick/tailstick/internal/tailscale"
 )
 
+// Runtime holds the resolved filesystem paths and flags shared across CLI and GUI entry points.
 type Runtime struct {
 	ConfigPath string
 	StatePath  string
@@ -31,6 +32,7 @@ type Runtime struct {
 	DryRun     bool
 }
 
+// Manager orchestrates the tailstick lifecycle: enrollment, agent reconciliation, and cleanup.
 type Manager struct {
 	Runtime Runtime
 	Logger  *logging.Logger
@@ -39,6 +41,8 @@ type Manager struct {
 	HostCtx platform.Context
 }
 
+// NewManager initializes a Manager by detecting the host platform, resolving paths,
+// creating required directories, and opening the log file.
 func NewManager(rt Runtime) (*Manager, error) {
 	host, err := platform.Detect()
 	if err != nil {

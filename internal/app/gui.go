@@ -8,6 +8,8 @@ import (
 	"github.com/tailstick/tailstick/internal/gui"
 )
 
+// RunGUI is the main entry point for the tailstick web-based GUI.
+// It starts a local HTTP server and optionally opens the browser.
 func RunGUI(args []string, rt Runtime) int {
 	fs := flag.NewFlagSet("gui", flag.ContinueOnError)
 	var (

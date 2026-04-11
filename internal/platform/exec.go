@@ -1,3 +1,4 @@
+// Package exec provides a command runner abstraction with optional dry-run mode.
 package platform
 
 import (
@@ -9,6 +10,7 @@ import (
 	"time"
 )
 
+// Runner executes system commands, with optional dry-run mode that prints without executing.
 type Runner struct {
 	DryRun bool
 }

@@ -1,3 +1,5 @@
+// Package tailscale provides a client wrapper around the tailscale CLI and API
+// for device enrollment, status checks, and device deletion.
 package tailscale
 
 import (
@@ -15,6 +17,7 @@ import (
 	"github.com/tailstick/tailstick/internal/platform"
 )
 
+// Client wraps tailscale CLI operations and the Tailscale API for device management.
 type Client struct {
 	Runner platform.Runner
 }
@@ -131,6 +134,8 @@ func (c Client) Uninstall(ctx context.Context, preset model.Preset) error {
 	return err
 }
 
+// DeleteDevice removes a device from the tailnet using the Tailscale API.
+// It is a no-op if either apiKey or deviceID is empty.
 func DeleteDevice(ctx context.Context, apiKey, deviceID string) error {
 	if strings.TrimSpace(apiKey) == "" || strings.TrimSpace(deviceID) == "" {
 		return nil
@@ -188,6 +193,8 @@ func uninstallCommand(preset model.Preset) []string {
 	return []string{"bash", "-lc", "apt-get remove -y tailscale"}
 }
 
+// BuildMachineContext constructs a machine-bound context string from the OS, architecture,
+// hostname, and (on Linux) the machine-id. Used to bind encrypted secrets to a host.
 func BuildMachineContext(host, _ string) string {
 	info := []string{runtime.GOOS, runtime.GOARCH, strings.ToLower(strings.TrimSpace(host))}
 	if runtime.GOOS == "linux" {
@@ -198,6 +205,7 @@ func BuildMachineContext(host, _ string) string {
 	return strings.Join(info, "|")
 }
 
+// ParseDurationDays resolves the effective lease duration in days based on mode and operator inputs.
 func ParseDurationDays(mode model.LeaseMode, defaultDays, customDays int) (int, error) {
 	switch mode {
 	case model.LeaseModeSession:
@@ -222,6 +230,7 @@ func ParseDurationDays(mode model.LeaseMode, defaultDays, customDays int) (int, 
 	}
 }
 
+// Future returns a time pointer set to ts plus the given number of days, or nil if days <= 0.
 func Future(ts time.Time, days int) *time.Time {
 	if days <= 0 {
 		return nil

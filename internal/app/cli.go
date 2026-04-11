@@ -1,3 +1,5 @@
+// Package app implements the tailstick CLI and GUI command surfaces, orchestrating
+// enrollment, agent reconciliation, and cleanup workflows.
 package app
 
 import (
@@ -13,8 +15,11 @@ import (
 	"github.com/tailstick/tailstick/internal/model"
 )
 
+// Version is the current tailstick release version.
 const Version = "1.0.0"
 
+// RunCLI is the main entry point for the tailstick command-line interface.
+// It dispatches to subcommands (run, agent, cleanup, version, help).
 func RunCLI(args []string, rt Runtime) int {
 	if len(args) == 0 {
 		return runEnroll(args, rt)

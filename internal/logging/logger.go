@@ -1,3 +1,4 @@
+// Package logging provides a simple dual-output logger that writes to both a file and stdout.
 package logging
 
 import (
@@ -9,12 +10,14 @@ import (
 	"time"
 )
 
+// Logger writes timestamped log lines to both a file and stdout.
 type Logger struct {
 	mu   sync.Mutex
 	file *os.File
 	std  *log.Logger
 }
 
+// New creates a Logger that appends to the file at the given path.
 func New(path string) (*Logger, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return nil, err

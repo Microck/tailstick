@@ -1,3 +1,4 @@
+// Package main is the Windows CLI entry point for tailstick.
 package main
 
 import (

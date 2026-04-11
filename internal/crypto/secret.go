@@ -1,3 +1,5 @@
+// Package crypto provides AES-GCM encryption and decryption of secrets using
+// scrypt-derived keys, bound to either a password or the host machine context.
 package crypto
 
 import (
@@ -14,6 +16,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 )
 
+// Envelope holds the encrypted payload metadata: key derivation mode, salt, nonce, and ciphertext.
 type Envelope struct {
 	Mode   string `json:"mode"`
 	Salt   string `json:"salt"`
@@ -21,6 +24,8 @@ type Envelope struct {
 	Cipher string `json:"cipher"`
 }
 
+// Encrypt encrypts plaintext using AES-256-GCM with a key derived from the password
+// (or machine context if password is empty). Returns a base64-encoded JSON envelope.
 func Encrypt(plain, password, machineContext string) (string, error) {
 	key, salt, mode, err := deriveKey(password, machineContext)
 	if err != nil {
@@ -52,6 +57,7 @@ func Encrypt(plain, password, machineContext string) (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
+// Decrypt reverses Encrypt, decoding the base64 envelope and decrypting with the same key material.
 func Decrypt(encoded, password, machineContext string) (string, error) {
 	raw, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {

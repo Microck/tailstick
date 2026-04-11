@@ -1,3 +1,4 @@
+// Package main is the Linux GUI entry point for tailstick.
 package main
 
 import (

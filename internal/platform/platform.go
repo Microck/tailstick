@@ -1,3 +1,5 @@
+// Package platform provides host detection, path resolution, and privilege checks
+// for supported operating systems (Linux and Windows).
 package platform
 
 import (
@@ -11,6 +13,8 @@ import (
 	"strings"
 )
 
+// Context holds detected host properties including OS, architecture, hostname,
+// boot ID, and the executable path of the running binary.
 type Context struct {
 	OS      string
 	Arch    string
@@ -19,6 +23,7 @@ type Context struct {
 	ExePath string
 }
 
+// Detect collects the current host's OS, architecture, hostname, boot ID, and executable path.
 func Detect() (Context, error) {
 	host, err := os.Hostname()
 	if err != nil {
@@ -39,9 +44,13 @@ func Detect() (Context, error) {
 	return ctx, nil
 }
 
+// IsLinux returns true when running on a Linux host.
 func IsLinux() bool   { return runtime.GOOS == "linux" }
+
+// IsWindows returns true when running on a Windows host.
 func IsWindows() bool { return runtime.GOOS == "windows" }
 
+// StatePath returns the platform-specific path for the state.json file.
 func StatePath() string {
 	if IsWindows() {
 		root := os.Getenv("ProgramData")
@@ -53,6 +62,7 @@ func StatePath() string {
 	return "/var/lib/tailstick/state.json"
 }
 
+// LogPath returns the platform-specific path for the tailstick log file.
 func LogPath() string {
 	if IsWindows() {
 		root := os.Getenv("ProgramData")
@@ -64,6 +74,7 @@ func LogPath() string {
 	return "/var/log/tailstick.log"
 }
 
+// LocalSecretPath returns the platform-specific directory for locally encrypted secrets.
 func LocalSecretPath() string {
 	if IsWindows() {
 		root := os.Getenv("ProgramData")
@@ -75,6 +86,7 @@ func LocalSecretPath() string {
 	return "/var/lib/tailstick/secrets"
 }
 
+// AgentBinaryPath returns the platform-specific path where the reconciliation agent binary is installed.
 func AgentBinaryPath() string {
 	if IsWindows() {
 		root := os.Getenv("ProgramData")
@@ -86,6 +98,7 @@ func AgentBinaryPath() string {
 	return "/var/lib/tailstick/tailstick-agent"
 }
 
+// EnsureParent creates all directories in the path of the given file's parent directory.
 func EnsureParent(path string) error {
 	parent := filepath.Dir(path)
 	if err := os.MkdirAll(parent, 0o755); err != nil {
@@ -137,6 +150,7 @@ func sanitizeHost(in string) string {
 	return strings.Trim(string(out), "-")
 }
 
+// RequireSupportedLinux returns an error if the current Linux distribution is not Debian or Ubuntu.
 func RequireSupportedLinux() error {
 	if !IsLinux() {
 		return nil
@@ -152,6 +166,7 @@ func RequireSupportedLinux() error {
 	return errors.New("linux target unsupported: only debian/ubuntu are supported in v1")
 }
 
+// IsElevated reports whether the current process is running with administrator/root privileges.
 func IsElevated() bool {
 	if IsLinux() {
 		return os.Geteuid() == 0
@@ -164,6 +179,7 @@ func IsElevated() bool {
 	return true
 }
 
+// ElevationHint returns a human-readable message describing how to re-run with elevated privileges.
 func ElevationHint(exePath string, args []string) string {
 	if IsLinux() {
 		return "rerun with sudo"
