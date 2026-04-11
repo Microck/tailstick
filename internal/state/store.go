@@ -40,7 +40,7 @@ func Save(path string, st model.LocalState) error {
 	}
 	b, err := json.MarshalIndent(st, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal state: %w", err)
 	}
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, b, 0o600); err != nil {
@@ -72,7 +72,7 @@ func AppendAudit(path string, entry model.AuditEntry) error {
 	defer f.Close()
 	b, err := json.Marshal(entry)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal audit entry: %w", err)
 	}
 	_, err = f.Write(append(b, '\n'))
 	return err

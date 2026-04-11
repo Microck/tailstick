@@ -42,56 +42,44 @@ func Detect() (Context, error) {
 func IsLinux() bool   { return runtime.GOOS == "linux" }
 func IsWindows() bool { return runtime.GOOS == "windows" }
 
+func windowsProgramData() string {
+	root := os.Getenv("ProgramData")
+	if root == "" {
+		root = `C:\ProgramData`
+	}
+	return root
+}
+
 func StatePath() string {
 	if IsWindows() {
-		root := os.Getenv("ProgramData")
-		if root == "" {
-			root = `C:\ProgramData`
-		}
-		return filepath.Join(root, "TailStick", "state.json")
+		return filepath.Join(windowsProgramData(), "TailStick", "state.json")
 	}
 	return "/var/lib/tailstick/state.json"
 }
 
 func LogPath() string {
 	if IsWindows() {
-		root := os.Getenv("ProgramData")
-		if root == "" {
-			root = `C:\ProgramData`
-		}
-		return filepath.Join(root, "TailStick", "tailstick.log")
+		return filepath.Join(windowsProgramData(), "TailStick", "tailstick.log")
 	}
 	return "/var/log/tailstick.log"
 }
 
 func LocalSecretPath() string {
 	if IsWindows() {
-		root := os.Getenv("ProgramData")
-		if root == "" {
-			root = `C:\ProgramData`
-		}
-		return filepath.Join(root, "TailStick", "secrets")
+		return filepath.Join(windowsProgramData(), "TailStick", "secrets")
 	}
 	return "/var/lib/tailstick/secrets"
 }
 
 func AgentBinaryPath() string {
 	if IsWindows() {
-		root := os.Getenv("ProgramData")
-		if root == "" {
-			root = `C:\ProgramData`
-		}
-		return filepath.Join(root, "TailStick", "tailstick-agent.exe")
+		return filepath.Join(windowsProgramData(), "TailStick", "tailstick-agent.exe")
 	}
 	return "/var/lib/tailstick/tailstick-agent"
 }
 
 func EnsureParent(path string) error {
-	parent := filepath.Dir(path)
-	if err := os.MkdirAll(parent, 0o755); err != nil {
-		return err
-	}
-	return nil
+	return os.MkdirAll(filepath.Dir(path), 0o755)
 }
 
 func detectBootID(osName string) string {

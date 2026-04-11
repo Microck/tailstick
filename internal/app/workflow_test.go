@@ -180,7 +180,7 @@ func TestAgentOnceSkipsCleanedRecordsWithoutSavingState(t *testing.T) {
 		t.Fatalf("read state before agent run: %v", err)
 	}
 
-	if err := mgr.AgentOnce(context.Background()); err != nil {
+	if _, err := mgr.AgentOnce(context.Background()); err != nil {
 		t.Fatalf("agent once: %v", err)
 	}
 
@@ -211,7 +211,7 @@ func TestAgentOnceCleansExpiredLeaseAndPersistsState(t *testing.T) {
 		t.Fatalf("save state: %v", err)
 	}
 
-	if err := mgr.AgentOnce(context.Background()); err != nil {
+	if _, err := mgr.AgentOnce(context.Background()); err != nil {
 		t.Fatalf("agent once: %v", err)
 	}
 
@@ -281,7 +281,7 @@ func TestAgentOnceMarksActiveLeaseAsNoAction(t *testing.T) {
 		t.Fatalf("save state: %v", err)
 	}
 
-	if err := mgr.AgentOnce(context.Background()); err != nil {
+	if _, err := mgr.AgentOnce(context.Background()); err != nil {
 		t.Fatalf("agent once: %v", err)
 	}
 

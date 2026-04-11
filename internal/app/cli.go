@@ -131,7 +131,7 @@ func runAgent(args []string, rt Runtime) int {
 
 	ctx := interruptContext()
 	if *once {
-		if err := mgr.AgentOnce(ctx); err != nil {
+		if _, err := mgr.AgentOnce(ctx); err != nil {
 			fmt.Fprintln(os.Stderr, "agent:", err)
 			return 1
 		}

@@ -73,7 +73,7 @@ func Decrypt(encoded, password, machineContext string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	key, _, _, err := deriveKeyWithSalt(password, machineContext, salt, env.Mode)
+	key, err := deriveKeyWithSalt(password, machineContext, salt, env.Mode)
 	if err != nil {
 		return "", err
 	}
@@ -101,25 +101,25 @@ func deriveKey(password, machineContext string) ([]byte, []byte, string, error) 
 	if strings.TrimSpace(password) != "" {
 		mode = "password"
 	}
-	key, _, _, err := deriveKeyWithSalt(password, machineContext, salt, mode)
+	key, err := deriveKeyWithSalt(password, machineContext, salt, mode)
 	if err != nil {
 		return nil, nil, "", err
 	}
 	return key, salt, mode, nil
 }
 
-func deriveKeyWithSalt(password, machineContext string, salt []byte, mode string) ([]byte, []byte, string, error) {
+func deriveKeyWithSalt(password, machineContext string, salt []byte, mode string) ([]byte, error) {
 	base := password
 	if mode == "machine" {
 		base = machineContext
 	}
 	if strings.TrimSpace(base) == "" {
-		return nil, nil, "", fmt.Errorf("empty key material")
+		return nil, fmt.Errorf("empty key material")
 	}
 	combined := sha256.Sum256([]byte(base))
 	key, err := scrypt.Key(combined[:], salt, 1<<15, 8, 1, 32)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, err
 	}
-	return key, salt, mode, nil
+	return key, nil
 }

@@ -151,7 +151,7 @@ func (m *Manager) Enroll(ctx context.Context, opts model.RuntimeOptions) (model.
 	}
 	secretRef, err := m.writeLeaseSecret(leaseID, encSecret)
 	if err != nil {
-		return model.LeaseRecord{}, err
+		return model.LeaseRecord{}, fmt.Errorf("write lease secret: %w", err)
 	}
 
 	cleanupState := preset.Cleanup
@@ -180,11 +180,11 @@ func (m *Manager) Enroll(ctx context.Context, opts model.RuntimeOptions) (model.
 
 	st, err := state.Load(m.Runtime.StatePath)
 	if err != nil {
-		return model.LeaseRecord{}, err
+		return model.LeaseRecord{}, fmt.Errorf("load state: %w", err)
 	}
 	st = state.UpsertRecord(st, rec)
 	if err := state.Save(m.Runtime.StatePath, st); err != nil {
-		return model.LeaseRecord{}, err
+		return model.LeaseRecord{}, fmt.Errorf("save state: %w", err)
 	}
 	if err := state.AppendAudit(m.Runtime.AuditPath, model.AuditEntry{
 		LeaseID:    rec.LeaseID,
@@ -208,10 +208,10 @@ func (m *Manager) Enroll(ctx context.Context, opts model.RuntimeOptions) (model.
 	return rec, nil
 }
 
-func (m *Manager) AgentOnce(ctx context.Context) error {
+func (m *Manager) AgentOnce(ctx context.Context) (model.LocalState, error) {
 	st, err := state.Load(m.Runtime.StatePath)
 	if err != nil {
-		return err
+		return model.LocalState{}, err
 	}
 	changed := false
 	now := time.Now().UTC()
@@ -236,7 +236,7 @@ func (m *Manager) AgentOnce(ctx context.Context) error {
 	}
 	if changed {
 		if err := state.Save(m.Runtime.StatePath, st); err != nil {
-			return err
+			return model.LocalState{}, err
 		}
 	}
 	if !hasActiveManagedLeases(st) {
@@ -246,7 +246,7 @@ func (m *Manager) AgentOnce(ctx context.Context) error {
 			m.Logger.Info("agent self-removal completed: no active managed leases")
 		}
 	}
-	return nil
+	return st, nil
 }
 
 func (m *Manager) AgentRun(ctx context.Context, interval time.Duration) error {
@@ -258,12 +258,9 @@ func (m *Manager) AgentRun(ctx context.Context, interval time.Duration) error {
 	defer ticker.Stop()
 
 	for {
-		if err := m.AgentOnce(ctx); err != nil {
-			m.Logger.Error("agent iteration failed: %v", err)
-		}
-		st, err := state.Load(m.Runtime.StatePath)
+		st, err := m.AgentOnce(ctx)
 		if err != nil {
-			return err
+			m.Logger.Error("agent iteration failed: %v", err)
 		}
 		if !hasActiveManagedLeases(st) {
 			m.Logger.Info("tailstick agent stopping: no active managed leases remain")
@@ -328,7 +325,9 @@ func (m *Manager) cleanupRecord(ctx context.Context, rec model.LeaseRecord) mode
 		machineCtx := tailscale.BuildMachineContext(m.HostCtx.Host, m.HostCtx.ExePath)
 		raw, err := intcrypto.Decrypt(encodedSecret, "", machineCtx)
 		if err == nil {
-			_ = json.Unmarshal([]byte(raw), &cleanupCfg)
+			if jsonErr := json.Unmarshal([]byte(raw), &cleanupCfg); jsonErr != nil {
+				m.Logger.Error("lease %s: failed to parse decrypted cleanup config: %v", rec.LeaseID, jsonErr)
+			}
 		}
 	}
 	if strings.TrimSpace(cleanupCfg.APIKey) == "" {
