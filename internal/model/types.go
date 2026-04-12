@@ -121,9 +121,8 @@ type AuditEntry struct {
 }
 
 type TailscaleSelf struct {
-	ID       string `json:"ID"`
-	DNSName  string `json:"DNSName"`
-	HostName string `json:"HostName"`
+	ID      string `json:"ID"`
+	DNSName string `json:"DNSName"`
 }
 
 type TailscaleStatus struct {

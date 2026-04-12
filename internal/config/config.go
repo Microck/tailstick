@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/tailstick/tailstick/internal/model"
@@ -78,16 +77,6 @@ func FindPreset(cfg model.Config, id string) (model.Preset, error) {
 		}
 	}
 	return model.Preset{}, fmt.Errorf("preset %q not found", id)
-}
-
-func ResolvePath(baseDir, path string) string {
-	if path == "" {
-		return ""
-	}
-	if filepath.IsAbs(path) {
-		return path
-	}
-	return filepath.Join(baseDir, path)
 }
 
 func ResolvePresetSecrets(p model.Preset) model.Preset {

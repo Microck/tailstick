@@ -116,9 +116,6 @@ func (c Client) Status(ctx context.Context) (model.TailscaleStatus, error) {
 	if v, ok := selfRaw["DNSName"].(string); ok {
 		st.Self.DNSName = v
 	}
-	if v, ok := selfRaw["HostName"].(string); ok {
-		st.Self.HostName = v
-	}
 	return st, nil
 }
 

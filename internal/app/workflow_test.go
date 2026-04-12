@@ -467,7 +467,7 @@ case "${1:-}" in
     echo "1.0.0"
     ;;
   status)
-    echo '{"Self":{"ID":"device-123","DNSName":"node.example.ts.net","HostName":"dev-box"}}'
+    echo '{\"Self\":{\"ID\":\"device-123\",\"DNSName\":\"node.example.ts.net\"}}'
     ;;
 esac
 `, logPath)
