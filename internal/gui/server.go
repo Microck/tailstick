@@ -39,6 +39,26 @@ type enrollRequest struct {
 	Password      string `json:"password"`
 }
 
+type presetSummary struct {
+	ID                     string   `json:"id"`
+	Description            string   `json:"description"`
+	Tags                   []string `json:"tags"`
+	AcceptRoutes           bool     `json:"acceptRoutes"`
+	AllowExitNodeSelection bool     `json:"allowExitNodeSelection"`
+	ApprovedExitNodes      []string `json:"approvedExitNodes"`
+}
+
+var validModes = map[string]bool{
+	string(model.LeaseModeSession):   true,
+	string(model.LeaseModeTimed):     true,
+	string(model.LeaseModePermanent): true,
+}
+
+var validChannels = map[string]bool{
+	string(model.ChannelStable): true,
+	string(model.ChannelLatest): true,
+}
+
 func Run(ctx context.Context, srv *Server, openBrowser bool, host string, port int) error {
 	host = strings.TrimSpace(host)
 	if host == "" {
@@ -83,12 +103,27 @@ func Run(ctx context.Context, srv *Server, openBrowser bool, host string, port i
 }
 
 func (s *Server) presets(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	cfg, err := config.Load(s.ConfigPath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, map[string]any{"defaultPreset": cfg.DefaultPreset, "presets": cfg.Presets})
+	summaries := make([]presetSummary, len(cfg.Presets))
+	for i, p := range cfg.Presets {
+		summaries[i] = presetSummary{
+			ID:                     p.ID,
+			Description:            p.Description,
+			Tags:                   p.Tags,
+			AcceptRoutes:           p.AcceptRoutes,
+			AllowExitNodeSelection: p.AllowExitNodeSelection,
+			ApprovedExitNodes:      p.ApprovedExitNodes,
+		}
+	}
+	writeJSON(w, map[string]any{"defaultPreset": cfg.DefaultPreset, "presets": summaries})
 }
 
 func (s *Server) enroll(w http.ResponseWriter, r *http.Request) {
@@ -99,6 +134,22 @@ func (s *Server) enroll(w http.ResponseWriter, r *http.Request) {
 	var req enrollRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	if req.Mode != "" && !validModes[req.Mode] {
+		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": fmt.Sprintf("invalid mode %q: must be session, timed, or permanent", req.Mode)})
+		return
+	}
+	if req.Channel != "" && !validChannels[req.Channel] {
+		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": fmt.Sprintf("invalid channel %q: must be stable or latest", req.Channel)})
+		return
+	}
+	if req.Days < 0 {
+		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "days must be non-negative"})
+		return
+	}
+	if req.CustomDays < 0 {
+		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "customDays must be non-negative"})
 		return
 	}
 	password := strings.TrimSpace(req.Password)

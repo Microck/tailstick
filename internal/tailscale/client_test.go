@@ -4,13 +4,17 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/tailstick/tailstick/internal/model"
+	"github.com/tailstick/tailstick/internal/platform"
 )
 
 func TestDeleteDeviceTreatsNotFoundAsAlreadyDeleted(t *testing.T) {
-	originalClient := deleteDeviceHTTPClient
-	deleteDeviceHTTPClient = &http.Client{
+	client := &http.Client{
 		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 			if req.Method != http.MethodDelete {
 				t.Fatalf("got method %s want DELETE", req.Method)
@@ -29,18 +33,14 @@ func TestDeleteDeviceTreatsNotFoundAsAlreadyDeleted(t *testing.T) {
 			}, nil
 		}),
 	}
-	t.Cleanup(func() {
-		deleteDeviceHTTPClient = originalClient
-	})
 
-	if err := DeleteDevice(context.Background(), "tskey-api-example", "device-123"); err != nil {
+	if err := deleteDevice(context.Background(), client, "tskey-api-example", "device-123"); err != nil {
 		t.Fatalf("expected 404 delete to be treated as success, got %v", err)
 	}
 }
 
 func TestDeleteDeviceReturnsErrorForOtherFailures(t *testing.T) {
-	originalClient := deleteDeviceHTTPClient
-	deleteDeviceHTTPClient = &http.Client{
+	client := &http.Client{
 		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
 			return &http.Response{
 				StatusCode: http.StatusForbidden,
@@ -49,16 +49,81 @@ func TestDeleteDeviceReturnsErrorForOtherFailures(t *testing.T) {
 			}, nil
 		}),
 	}
-	t.Cleanup(func() {
-		deleteDeviceHTTPClient = originalClient
-	})
 
-	err := DeleteDevice(context.Background(), "tskey-api-example", "device-123")
+	err := deleteDevice(context.Background(), client, "tskey-api-example", "device-123")
 	if err == nil {
 		t.Fatal("expected delete error")
 	}
 	if !strings.Contains(err.Error(), "status=403") {
 		t.Fatalf("got error %q want 403 context", err)
+	}
+}
+
+func TestDefaultDeleteDeviceClientHasTimeout(t *testing.T) {
+	if defaultDeleteDeviceHTTPClient.Timeout <= 0 {
+		t.Fatalf("expected default delete client timeout, got %s", defaultDeleteDeviceHTTPClient.Timeout)
+	}
+}
+
+func TestClientUpUsesAuthKeyFileAndRemovesIt(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping filesystem runner test in short mode")
+	}
+
+	root := t.TempDir()
+	logPath := filepath.Join(root, "tailscale.log")
+	scriptPath := filepath.Join(root, "tailscale")
+	script := `#!/bin/sh
+set -eu
+for arg in "$@"; do
+  printf '%s\n' "$arg" >> "` + logPath + `"
+  case "$arg" in
+    --auth-key=file:*)
+      key_path=${arg#--auth-key=file:}
+      printf 'key=%s\n' "$(cat "$key_path")" >> "` + logPath + `"
+      ;;
+  esac
+done
+`
+	if err := os.WriteFile(scriptPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake tailscale: %v", err)
+	}
+	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	client := Client{Runner: platform.Runner{}}
+	preset := model.Preset{AuthKey: "tskey-auth-secret"}
+
+	if err := client.Up(context.Background(), preset, "device-name", model.LeaseModeTimed, ""); err != nil {
+		t.Fatalf("up: %v", err)
+	}
+
+	bodyBytes, err := os.ReadFile(logPath)
+	if err != nil {
+		t.Fatalf("read log: %v", err)
+	}
+	body := string(bodyBytes)
+	if strings.Contains(body, "--auth-key=tskey-auth-secret") {
+		t.Fatalf("raw auth key leaked into argv log: %q", body)
+	}
+	if !strings.Contains(body, "--auth-key=file:") {
+		t.Fatalf("expected file-based auth key flag, got %q", body)
+	}
+	if !strings.Contains(body, "key=tskey-auth-secret") {
+		t.Fatalf("expected helper script to read auth key file, got %q", body)
+	}
+
+	var keyPath string
+	for _, line := range strings.Split(strings.TrimSpace(body), "\n") {
+		if strings.HasPrefix(line, "--auth-key=file:") {
+			keyPath = strings.TrimPrefix(line, "--auth-key=file:")
+			break
+		}
+	}
+	if keyPath == "" {
+		t.Fatal("failed to capture auth key temp path")
+	}
+	if _, err := os.Stat(keyPath); !os.IsNotExist(err) {
+		t.Fatalf("expected auth key temp file to be removed, stat err=%v", err)
 	}
 }
 
