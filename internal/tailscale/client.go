@@ -19,7 +19,7 @@ type Client struct {
 	Runner platform.Runner
 }
 
-var deleteDeviceHTTPClient = http.DefaultClient
+var defaultDeleteDeviceHTTPClient = &http.Client{Timeout: 15 * time.Second}
 
 func (c Client) IsInstalled(ctx context.Context) bool {
 	_, err := c.Runner.Run(ctx, []string{"tailscale", "version"})
@@ -61,9 +61,15 @@ func (c Client) Up(ctx context.Context, preset model.Preset, deviceName string, 
 		return fmt.Errorf("missing auth key")
 	}
 
+	authArg, cleanupAuthKeyFile, err := authKeyArg(auth)
+	if err != nil {
+		return err
+	}
+	defer cleanupAuthKeyFile()
+
 	args := []string{
 		"tailscale", "up",
-		"--auth-key=" + auth,
+		authArg,
 		"--hostname=" + deviceName,
 		"--reset",
 	}
@@ -76,7 +82,7 @@ func (c Client) Up(ctx context.Context, preset model.Preset, deviceName string, 
 	if exitNode != "" {
 		args = append(args, "--exit-node="+exitNode)
 	}
-	_, err := c.Runner.Run(ctx, args)
+	_, err = c.Runner.Run(ctx, args)
 	return err
 }
 
@@ -132,6 +138,10 @@ func (c Client) Uninstall(ctx context.Context, preset model.Preset) error {
 }
 
 func DeleteDevice(ctx context.Context, apiKey, deviceID string) error {
+	return deleteDevice(ctx, defaultDeleteDeviceHTTPClient, apiKey, deviceID)
+}
+
+func deleteDevice(ctx context.Context, client *http.Client, apiKey, deviceID string) error {
 	if strings.TrimSpace(apiKey) == "" || strings.TrimSpace(deviceID) == "" {
 		return nil
 	}
@@ -140,7 +150,7 @@ func DeleteDevice(ctx context.Context, apiKey, deviceID string) error {
 		return err
 	}
 	req.SetBasicAuth(apiKey, "")
-	resp, err := deleteDeviceHTTPClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -154,6 +164,32 @@ func DeleteDevice(ctx context.Context, apiKey, deviceID string) error {
 		return nil
 	}
 	return fmt.Errorf("delete device failed: status=%d body=%s", resp.StatusCode, bodyText)
+}
+
+func authKeyArg(auth string) (string, func(), error) {
+	f, err := os.CreateTemp("", "tailstick-auth-key-*")
+	if err != nil {
+		return "", func() {}, fmt.Errorf("create auth key temp file: %w", err)
+	}
+	path := f.Name()
+	cleanup := func() {
+		_ = os.Remove(path)
+	}
+	if _, err := f.WriteString(auth); err != nil {
+		cleanup()
+		_ = f.Close()
+		return "", func() {}, fmt.Errorf("write auth key temp file: %w", err)
+	}
+	if err := f.Chmod(0o600); err != nil && runtime.GOOS != "windows" {
+		cleanup()
+		_ = f.Close()
+		return "", func() {}, fmt.Errorf("chmod auth key temp file: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		cleanup()
+		return "", func() {}, fmt.Errorf("close auth key temp file: %w", err)
+	}
+	return "--auth-key=file:" + path, cleanup, nil
 }
 
 func installCommand(preset model.Preset, channel model.Channel) []string {
