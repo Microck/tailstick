@@ -1,3 +1,6 @@
+// Package logging provides structured, file-based logging with automatic
+// rotation. Log files are written to a platform-specific directory and
+// rotated by size to prevent unbounded growth.
 package logging
 
 import (

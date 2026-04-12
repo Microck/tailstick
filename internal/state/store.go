@@ -1,3 +1,6 @@
+// Package state manages persistent lease storage on disk.
+// It reads and writes lease records as JSON files, providing the canonical
+// source of truth for active and historical leases.
 package state
 
 import (

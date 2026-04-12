@@ -1,3 +1,5 @@
+// Package model defines the core domain types for tailstick: leases, presets,
+// configuration shapes, channel selectors, and lease lifecycle events.
 package model
 
 import "time"

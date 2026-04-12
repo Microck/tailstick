@@ -1,3 +1,6 @@
+// Package platform abstracts OS-specific command execution and service management.
+// It provides a Runner interface for shelling out to system commands and platform
+// detection for Linux and Windows environments.
 package platform
 
 import (
