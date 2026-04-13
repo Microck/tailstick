@@ -1,3 +1,6 @@
+// Package tailscale provides a client for interacting with the Tailscale CLI and API.
+// It handles installation checks, auth key-based enrollment, device deletion via the
+// Tailscale API, and status queries.
 package tailscale
 
 import (

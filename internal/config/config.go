@@ -1,3 +1,6 @@
+// Package config handles loading and validation of tailstick.config.json.
+// It parses preset definitions, lease mode defaults, exit node allowlists,
+// and provides the runtime configuration used by all other packages.
 package config
 
 import (

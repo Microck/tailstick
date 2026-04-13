@@ -1,3 +1,6 @@
+// Package crypto provides AES-GCM encryption and decryption for sensitive
+// configuration values (auth keys, API keys, operator passwords).
+// Secrets are encrypted with a key derived from a machine-specific salt.
 package crypto
 
 import (

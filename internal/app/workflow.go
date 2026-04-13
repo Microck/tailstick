@@ -1,3 +1,6 @@
+// Package app implements the core tailstick runtime, CLI commands, and GUI server.
+// It coordinates lease lifecycle operations (create, reconcile, cleanup) by composing
+// the tailscale client, state store, crypto, and platform packages.
 package app
 
 import (

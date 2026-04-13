@@ -1,3 +1,6 @@
+// Package gui serves the browser-based setup wizard via a local HTTP server.
+// It embeds static assets (HTML, favicon) and exposes REST endpoints for
+// preset selection, mode configuration, and lease creation.
 package gui
 
 import (
