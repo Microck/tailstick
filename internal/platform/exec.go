@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"time"
 )
 
 type Runner struct {
@@ -32,10 +31,4 @@ func (r Runner) Run(ctx context.Context, args []string) (string, error) {
 		return out.String(), fmt.Errorf("%w: %s", err, strings.TrimSpace(out.String()))
 	}
 	return out.String(), nil
-}
-
-func (r Runner) RunWithTimeout(timeout time.Duration, args []string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	return r.Run(ctx, args)
 }
