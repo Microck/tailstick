@@ -26,6 +26,8 @@ import (
 	"github.com/tailstick/tailstick/internal/tailscale"
 )
 
+// Runtime holds the resolved filesystem paths and runtime flags shared by
+// CLI and GUI entry points.
 type Runtime struct {
 	ConfigPath string
 	StatePath  string
@@ -34,6 +36,9 @@ type Runtime struct {
 	DryRun     bool
 }
 
+// Manager coordinates the full lease lifecycle: enrollment, reconciliation,
+// and cleanup. It composes the tailscale client, state store, crypto, and
+// platform packages.
 type Manager struct {
 	Runtime Runtime
 	Logger  *logging.Logger
@@ -42,6 +47,8 @@ type Manager struct {
 	HostCtx platform.Context
 }
 
+// NewManager initialises a Manager by detecting the host platform, resolving
+// default paths, creating required directories, and opening the log file.
 func NewManager(rt Runtime) (*Manager, error) {
 	host, err := platform.Detect()
 	if err != nil {
@@ -60,10 +67,10 @@ func NewManager(rt Runtime) (*Manager, error) {
 		rt.LogPath = platform.LogPath()
 	}
 	if err := platform.EnsureParent(rt.StatePath); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ensure state directory: %w", err)
 	}
 	if err := platform.EnsureParent(rt.LogPath); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ensure log directory: %w", err)
 	}
 	log, err := logging.New(rt.LogPath)
 	if err != nil {
@@ -79,27 +86,30 @@ func NewManager(rt Runtime) (*Manager, error) {
 	}, nil
 }
 
+// Close releases resources held by the Manager, including the log file.
 func (m *Manager) Close() {
 	_ = m.Logger.Close()
 }
 
+// Enroll creates a new lease, installs and enrols Tailscale, persists state,
+// and optionally installs the background agent for non-permanent leases.
 func (m *Manager) Enroll(ctx context.Context, opts model.RuntimeOptions) (model.LeaseRecord, error) {
 	if !m.Runtime.DryRun && !platform.IsElevated() {
 		return model.LeaseRecord{}, fmt.Errorf("elevated privileges are required for enrollment; %s", platform.ElevationHint(m.HostCtx.ExePath, nil))
 	}
 	if runtime.GOOS == "linux" {
 		if err := platform.RequireSupportedLinux(); err != nil {
-			return model.LeaseRecord{}, err
+			return model.LeaseRecord{}, fmt.Errorf("linux platform check: %w", err)
 		}
 	}
 
 	cfg, err := config.Load(m.Runtime.ConfigPath)
 	if err != nil {
-		return model.LeaseRecord{}, err
+		return model.LeaseRecord{}, fmt.Errorf("load config: %w", err)
 	}
 	preset, err := config.FindPreset(cfg, opts.PresetID)
 	if err != nil {
-		return model.LeaseRecord{}, err
+		return model.LeaseRecord{}, fmt.Errorf("find preset: %w", err)
 	}
 	if expected := strings.TrimSpace(cfg.OperatorPassword); expected != "" {
 		if subtle.ConstantTimeCompare([]byte(opts.Password), []byte(expected)) != 1 {
@@ -145,16 +155,16 @@ func (m *Manager) Enroll(ctx context.Context, opts model.RuntimeOptions) (model.
 
 	secretPayload, err := json.Marshal(preset.Cleanup)
 	if err != nil {
-		return model.LeaseRecord{}, err
+		return model.LeaseRecord{}, fmt.Errorf("marshal cleanup secret: %w", err)
 	}
 	machineCtx := tailscale.BuildMachineContext(m.HostCtx.Host, m.HostCtx.ExePath)
 	encSecret, err := intcrypto.Encrypt(string(secretPayload), "", machineCtx)
 	if err != nil {
-		return model.LeaseRecord{}, err
+		return model.LeaseRecord{}, fmt.Errorf("encrypt cleanup secret: %w", err)
 	}
 	secretRef, err := m.writeLeaseSecret(leaseID, encSecret)
 	if err != nil {
-		return model.LeaseRecord{}, err
+		return model.LeaseRecord{}, fmt.Errorf("write lease secret: %w", err)
 	}
 
 	cleanupState := preset.Cleanup
@@ -183,11 +193,11 @@ func (m *Manager) Enroll(ctx context.Context, opts model.RuntimeOptions) (model.
 
 	st, err := state.Load(m.Runtime.StatePath)
 	if err != nil {
-		return model.LeaseRecord{}, err
+		return model.LeaseRecord{}, fmt.Errorf("load state: %w", err)
 	}
 	st = state.UpsertRecord(st, rec)
 	if err := state.Save(m.Runtime.StatePath, st); err != nil {
-		return model.LeaseRecord{}, err
+		return model.LeaseRecord{}, fmt.Errorf("save state: %w", err)
 	}
 	if err := state.AppendAudit(m.Runtime.AuditPath, model.AuditEntry{
 		LeaseID:    rec.LeaseID,
@@ -211,6 +221,8 @@ func (m *Manager) Enroll(ctx context.Context, opts model.RuntimeOptions) (model.
 	return rec, nil
 }
 
+// AgentOnce performs a single reconciliation pass over all stored leases,
+// cleaning up expired ones and self-removing the agent if no active leases remain.
 func (m *Manager) AgentOnce(ctx context.Context) error {
 	st, err := state.Load(m.Runtime.StatePath)
 	if err != nil {
@@ -252,6 +264,8 @@ func (m *Manager) AgentOnce(ctx context.Context) error {
 	return nil
 }
 
+// AgentRun runs AgentOnce in a loop at the given interval until no active
+// managed leases remain or the context is cancelled.
 func (m *Manager) AgentRun(ctx context.Context, interval time.Duration) error {
 	if interval <= 0 {
 		interval = 1 * time.Minute
@@ -280,6 +294,7 @@ func (m *Manager) AgentRun(ctx context.Context, interval time.Duration) error {
 	}
 }
 
+// ForceCleanup forces immediate cleanup of the lease with the given ID.
 func (m *Manager) ForceCleanup(ctx context.Context, leaseID string) error {
 	if strings.TrimSpace(leaseID) == "" {
 		return fmt.Errorf("lease id is required")
@@ -331,7 +346,9 @@ func (m *Manager) cleanupRecord(ctx context.Context, rec model.LeaseRecord) mode
 		machineCtx := tailscale.BuildMachineContext(m.HostCtx.Host, m.HostCtx.ExePath)
 		raw, err := intcrypto.Decrypt(encodedSecret, "", machineCtx)
 		if err == nil {
-			_ = json.Unmarshal([]byte(raw), &cleanupCfg)
+			if jsonErr := json.Unmarshal([]byte(raw), &cleanupCfg); jsonErr != nil {
+				m.Logger.Error("parse decrypted cleanup config: %v", jsonErr)
+			}
 		}
 	}
 	if strings.TrimSpace(cleanupCfg.APIKey) == "" {
@@ -342,10 +359,10 @@ func (m *Manager) cleanupRecord(ctx context.Context, rec model.LeaseRecord) mode
 
 	if cleanupCfg.DeviceDeleteEnabled && cleanupCfg.APIKey != "" && rec.DeviceID != "" {
 		delCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
 		if err := tailscale.DeleteDevice(delCtx, cleanupCfg.APIKey, rec.DeviceID); err != nil {
 			errs = append(errs, "delete device API: "+err.Error())
 		}
-		cancel()
 	}
 
 	if rec.Mode != model.LeaseModePermanent {
@@ -381,6 +398,8 @@ func (m *Manager) cleanupRecord(ctx context.Context, rec model.LeaseRecord) mode
 	return rec
 }
 
+// shouldCleanup reports whether the lease should be cleaned up based on its
+// mode, boot ID, and expiration time.
 func shouldCleanup(rec model.LeaseRecord, currentBootID string, now time.Time) bool {
 	switch rec.Mode {
 	case model.LeaseModeSession:
@@ -677,6 +696,7 @@ func sanitizeNamePart(in string) string {
 	return strings.Trim(strings.Join(strings.Fields(strings.ReplaceAll(string(out), "--", "-")), "-"), "-")
 }
 
+// newLeaseID generates a cryptographically random, lowercase base32 lease identifier.
 func newLeaseID() (string, error) {
 	b := make([]byte, 5)
 	if _, err := rand.Read(b); err != nil {
@@ -685,6 +705,7 @@ func newLeaseID() (string, error) {
 	return strings.ToLower(strings.TrimRight(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(b), "=")), nil
 }
 
+// hasActiveManagedLeases reports whether any non-permanent, non-cleaned leases exist.
 func hasActiveManagedLeases(st model.LocalState) bool {
 	for _, rec := range st.Records {
 		if rec.Mode == model.LeaseModePermanent {
@@ -697,6 +718,7 @@ func hasActiveManagedLeases(st model.LocalState) bool {
 	return false
 }
 
+// installSnapshotEmpty reports whether the install snapshot contains no commands.
 func installSnapshotEmpty(inst model.Install) bool {
 	return len(inst.LinuxStable) == 0 &&
 		len(inst.LinuxLatest) == 0 &&
@@ -739,17 +761,18 @@ func (m *Manager) resolvePresetFromConfig(presetID string) model.Preset {
 	return config.ResolvePresetSecrets(p)
 }
 
+// writeLeaseSecret persists the encrypted lease secret to disk and returns its path.
 func (m *Manager) writeLeaseSecret(leaseID, encrypted string) (string, error) {
 	if m.Runtime.DryRun {
 		return "dry-run://secret/" + leaseID, nil
 	}
 	secretDir := platform.LocalSecretPath()
 	if err := os.MkdirAll(secretDir, 0o700); err != nil {
-		return "", err
+		return "", fmt.Errorf("create secret directory: %w", err)
 	}
 	path := filepath.Join(secretDir, leaseID+".enc")
 	if err := os.WriteFile(path, []byte(encrypted), 0o600); err != nil {
-		return "", err
+		return "", fmt.Errorf("write secret file: %w", err)
 	}
 	return path, nil
 }

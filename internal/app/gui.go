@@ -8,6 +8,7 @@ import (
 	"github.com/tailstick/tailstick/internal/gui"
 )
 
+// RunGUI starts the browser-based setup wizard and returns an exit code.
 func RunGUI(args []string, rt Runtime) int {
 	fs := flag.NewFlagSet("gui", flag.ContinueOnError)
 	var (
@@ -31,7 +32,7 @@ func RunGUI(args []string, rt Runtime) int {
 		DryRun:     *dryRun,
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "init:", err)
+		fmt.Fprintf(os.Stderr, "init: %v\n", err)
 		return 1
 	}
 	defer mgr.Close()
@@ -41,7 +42,7 @@ func RunGUI(args []string, rt Runtime) int {
 		Logf:       mgr.Logger.Info,
 		EnrollFn:   mgr.Enroll,
 	}, *openBrowser, *host, *port); err != nil {
-		fmt.Fprintln(os.Stderr, "gui:", err)
+		fmt.Fprintf(os.Stderr, "gui: %v\n", err)
 		return 1
 	}
 	return 0
