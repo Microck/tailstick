@@ -155,6 +155,10 @@ func (s *Server) enroll(w http.ResponseWriter, r *http.Request) {
 		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "customDays must be non-negative"})
 		return
 	}
+	if req.Mode == string(model.LeaseModeTimed) && req.CustomDays == 0 && req.Days == 0 {
+		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "timed mode requires days > 0 or customDays > 0"})
+		return
+	}
 	password := strings.TrimSpace(req.Password)
 	if password == "" {
 		password = strings.TrimSpace(os.Getenv("TAILSTICK_OPERATOR_PASSWORD"))
@@ -174,13 +178,16 @@ func (s *Server) enroll(w http.ResponseWriter, r *http.Request) {
 		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
 		return
 	}
-	writeJSON(w, map[string]any{
+	resp := map[string]any{
 		"ok":         true,
 		"leaseId":    rec.LeaseID,
 		"deviceName": rec.DeviceName,
 		"mode":       rec.Mode,
-		"expiresAt":  rec.ExpiresAt,
-	})
+	}
+	if rec.ExpiresAt != nil {
+		resp["expiresAt"] = rec.ExpiresAt
+	}
+	writeJSON(w, resp)
 }
 
 func (s *Server) index(w http.ResponseWriter, r *http.Request) {

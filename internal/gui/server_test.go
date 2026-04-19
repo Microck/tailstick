@@ -112,6 +112,11 @@ func TestEnrollRejectsInvalidModeAndNegativeDurations(t *testing.T) {
 			body: `{"mode":"timed","channel":"stable","customDays":-1}`,
 			want: `customDays must be non-negative`,
 		},
+		{
+			name: "timed mode with zero days",
+			body: `{"mode":"timed","channel":"stable","days":0}`,
+			want: `timed mode requires days > 0`,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/enroll", bytes.NewBufferString(tc.body))
