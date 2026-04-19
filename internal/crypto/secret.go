@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 )
 
+// Envelope holds the encrypted payload and the parameters needed for decryption.
 type Envelope struct {
 	Mode   string `json:"mode"`
 	Salt   string `json:"salt"`
@@ -24,6 +26,8 @@ type Envelope struct {
 	Cipher string `json:"cipher"`
 }
 
+// Encrypt encrypts plaintext using AES-GCM with a key derived from the
+// password or machine context. The result is a base64-encoded JSON envelope.
 func Encrypt(plain, password, machineContext string) (string, error) {
 	key, salt, mode, err := deriveKey(password, machineContext)
 	if err != nil {
@@ -55,6 +59,7 @@ func Encrypt(plain, password, machineContext string) (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
+// Decrypt decrypts a base64-encoded JSON envelope produced by Encrypt.
 func Decrypt(encoded, password, machineContext string) (string, error) {
 	raw, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
@@ -117,7 +122,7 @@ func deriveKeyWithSalt(password, machineContext string, salt []byte, mode string
 		base = machineContext
 	}
 	if strings.TrimSpace(base) == "" {
-		return nil, nil, "", fmt.Errorf("empty key material")
+		return nil, nil, "", errors.New("empty key material")
 	}
 	combined := sha256.Sum256([]byte(base))
 	key, err := scrypt.Key(combined[:], salt, 1<<15, 8, 1, 32)

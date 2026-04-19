@@ -13,8 +13,10 @@ import (
 	"github.com/tailstick/tailstick/internal/model"
 )
 
+// Version is the current tailstick release version.
 const Version = "1.0.0"
 
+// RunCLI dispatches the CLI subcommand indicated by args and returns an exit code.
 func RunCLI(args []string, rt Runtime) int {
 	if len(args) == 0 {
 		return runEnroll(args, rt)
@@ -72,7 +74,7 @@ func runEnroll(args []string, rt Runtime) int {
 		DryRun:     *dryRun,
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "init:", err)
+		fmt.Fprintf(os.Stderr, "init: %v\n", err)
 		return 1
 	}
 	defer mgr.Close()
@@ -91,7 +93,7 @@ func runEnroll(args []string, rt Runtime) int {
 		Password:       *password,
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "enroll:", err)
+		fmt.Fprintf(os.Stderr, "enroll: %v\n", err)
 		return 1
 	}
 	fmt.Printf("Lease created: %s\nDevice name: %s\nMode: %s\n", rec.LeaseID, rec.DeviceName, rec.Mode)
@@ -101,6 +103,7 @@ func runEnroll(args []string, rt Runtime) int {
 	return 0
 }
 
+// runAgent executes the agent (lease reconciliation) CLI subcommand.
 func runAgent(args []string, rt Runtime) int {
 	fs := flag.NewFlagSet("agent", flag.ContinueOnError)
 	var (
@@ -124,7 +127,7 @@ func runAgent(args []string, rt Runtime) int {
 		DryRun:     *dryRun,
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "init:", err)
+		fmt.Fprintf(os.Stderr, "init: %v\n", err)
 		return 1
 	}
 	defer mgr.Close()
@@ -132,18 +135,19 @@ func runAgent(args []string, rt Runtime) int {
 	ctx := interruptContext()
 	if *once {
 		if err := mgr.AgentOnce(ctx); err != nil {
-			fmt.Fprintln(os.Stderr, "agent:", err)
+			fmt.Fprintf(os.Stderr, "agent: %v\n", err)
 			return 1
 		}
 		return 0
 	}
 	if err := mgr.AgentRun(ctx, *interval); err != nil && err != context.Canceled {
-		fmt.Fprintln(os.Stderr, "agent:", err)
+		fmt.Fprintf(os.Stderr, "agent: %v\n", err)
 		return 1
 	}
 	return 0
 }
 
+// runCleanup executes the forced cleanup CLI subcommand.
 func runCleanup(args []string, rt Runtime) int {
 	fs := flag.NewFlagSet("cleanup", flag.ContinueOnError)
 	var (
@@ -165,18 +169,19 @@ func runCleanup(args []string, rt Runtime) int {
 		DryRun:     *dryRun,
 	})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "init:", err)
+		fmt.Fprintf(os.Stderr, "init: %v\n", err)
 		return 1
 	}
 	defer mgr.Close()
 	if err := mgr.ForceCleanup(interruptContext(), *leaseID); err != nil {
-		fmt.Fprintln(os.Stderr, "cleanup:", err)
+		fmt.Fprintf(os.Stderr, "cleanup: %v\n", err)
 		return 1
 	}
 	fmt.Println("cleanup complete")
 	return 0
 }
 
+// interruptContext returns a context that is cancelled on SIGINT or SIGTERM.
 func interruptContext() context.Context {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	go func() {

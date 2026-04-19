@@ -24,12 +24,14 @@ import (
 //go:embed index.html tailstick-favicon.png
 var staticFS embed.FS
 
+// Server serves the browser-based setup wizard via a local HTTP server.
 type Server struct {
 	ConfigPath string
 	Logf       func(format string, args ...any)
 	EnrollFn   func(context.Context, model.RuntimeOptions) (model.LeaseRecord, error)
 }
 
+// enrollRequest represents the JSON payload sent by the browser to create a lease.
 type enrollRequest struct {
 	PresetID      string `json:"presetId"`
 	Mode          string `json:"mode"`
