@@ -18,6 +18,7 @@ const (
 	DefaultConfigFile = "tailstick.config.json"
 )
 
+// Load reads and parses the configuration file, expanding environment variables and validating presets.
 func Load(path string) (model.Config, error) {
 	if path == "" {
 		path = DefaultConfigFile
@@ -43,6 +44,7 @@ func Load(path string) (model.Config, error) {
 	return cfg, nil
 }
 
+// Validate checks that the configuration has at least one preset with valid auth material.
 func Validate(cfg model.Config) error {
 	if len(cfg.Presets) == 0 {
 		return errors.New("config must define at least one preset")
@@ -68,6 +70,7 @@ func Validate(cfg model.Config) error {
 	return nil
 }
 
+// FindPreset returns the preset matching the given ID, the default preset, or the first preset.
 func FindPreset(cfg model.Config, id string) (model.Preset, error) {
 	if id == "" {
 		id = cfg.DefaultPreset
@@ -83,6 +86,7 @@ func FindPreset(cfg model.Config, id string) (model.Preset, error) {
 	return model.Preset{}, fmt.Errorf("preset %q not found", id)
 }
 
+// ResolvePath joins a relative path to a base directory, returning absolute paths unchanged.
 func ResolvePath(baseDir, path string) string {
 	if path == "" {
 		return ""
@@ -93,6 +97,7 @@ func ResolvePath(baseDir, path string) string {
 	return filepath.Join(baseDir, path)
 }
 
+// ResolvePresetSecrets fills in preset auth keys and API keys from environment variables when inline values are empty.
 func ResolvePresetSecrets(p model.Preset) model.Preset {
 	out := p
 	if strings.TrimSpace(out.AuthKey) == "" && strings.TrimSpace(out.AuthKeyEnv) != "" {

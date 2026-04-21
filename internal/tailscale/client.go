@@ -18,17 +18,20 @@ import (
 	"github.com/tailstick/tailstick/internal/platform"
 )
 
+// Client wraps Tailscale CLI operations through a platform.Runner for testability.
 type Client struct {
 	Runner platform.Runner
 }
 
 var defaultDeleteDeviceHTTPClient = &http.Client{Timeout: 15 * time.Second}
 
+// IsInstalled checks whether the Tailscale CLI is available on the system.
 func (c Client) IsInstalled(ctx context.Context) bool {
 	_, err := c.Runner.Run(ctx, []string{"tailscale", "version"})
 	return err == nil
 }
 
+// EnsureInstalled installs Tailscale if not present, then pins the version for the stable channel.
 func (c Client) EnsureInstalled(ctx context.Context, preset model.Preset, channel model.Channel, stableVersion string) error {
 	if !c.IsInstalled(ctx) {
 		cmd := installCommand(preset, channel)
@@ -52,6 +55,7 @@ func (c Client) EnsureInstalled(ctx context.Context, preset model.Preset, channe
 	return nil
 }
 
+// Up runs "tailscale up" with auth key, hostname, tags, routes, and optional exit node.
 func (c Client) Up(ctx context.Context, preset model.Preset, deviceName string, mode model.LeaseMode, exitNode string) error {
 	auth := preset.AuthKey
 	if mode == model.LeaseModeSession {
@@ -89,16 +93,19 @@ func (c Client) Up(ctx context.Context, preset model.Preset, deviceName string, 
 	return err
 }
 
+// Down runs "tailscale down" to disconnect from the tailnet.
 func (c Client) Down(ctx context.Context) error {
 	_, err := c.Runner.Run(ctx, []string{"tailscale", "down"})
 	return err
 }
 
+// Logout runs "tailscale logout" to remove local node credentials.
 func (c Client) Logout(ctx context.Context) error {
 	_, err := c.Runner.Run(ctx, []string{"tailscale", "logout"})
 	return err
 }
 
+// Status queries the current Tailscale status, with a fallback for schema drift.
 func (c Client) Status(ctx context.Context) (model.TailscaleStatus, error) {
 	out, err := c.Runner.Run(ctx, []string{"tailscale", "status", "--json"})
 	if err != nil {
@@ -131,6 +138,7 @@ func (c Client) Status(ctx context.Context) (model.TailscaleStatus, error) {
 	return st, nil
 }
 
+// Uninstall removes Tailscale using the preset's configured uninstall command.
 func (c Client) Uninstall(ctx context.Context, preset model.Preset) error {
 	cmd := uninstallCommand(preset)
 	if len(cmd) == 0 {
@@ -140,6 +148,7 @@ func (c Client) Uninstall(ctx context.Context, preset model.Preset) error {
 	return err
 }
 
+// DeleteDevice removes a device from the tailnet via the Tailscale API.
 func DeleteDevice(ctx context.Context, apiKey, deviceID string) error {
 	return deleteDevice(ctx, defaultDeleteDeviceHTTPClient, apiKey, deviceID)
 }
@@ -227,6 +236,7 @@ func uninstallCommand(preset model.Preset) []string {
 	return []string{"bash", "-lc", "apt-get remove -y tailscale"}
 }
 
+// BuildMachineContext assembles a machine-specific context string used for secret key derivation.
 func BuildMachineContext(host, _ string) string {
 	info := []string{runtime.GOOS, runtime.GOARCH, strings.ToLower(strings.TrimSpace(host))}
 	if runtime.GOOS == "linux" {
@@ -237,6 +247,7 @@ func BuildMachineContext(host, _ string) string {
 	return strings.Join(info, "|")
 }
 
+// ParseDurationDays validates and returns the lease duration in days for the given mode.
 func ParseDurationDays(mode model.LeaseMode, defaultDays, customDays int) (int, error) {
 	switch mode {
 	case model.LeaseModeSession:
@@ -261,6 +272,7 @@ func ParseDurationDays(mode model.LeaseMode, defaultDays, customDays int) (int, 
 	}
 }
 
+// Future returns a time pointer set to the given number of days from now, or nil if days <= 0.
 func Future(ts time.Time, days int) *time.Time {
 	if days <= 0 {
 		return nil

@@ -24,6 +24,7 @@ import (
 //go:embed index.html tailstick-favicon.png
 var staticFS embed.FS
 
+// Server is the GUI HTTP server providing preset listing and enrollment endpoints.
 type Server struct {
 	ConfigPath string
 	Logf       func(format string, args ...any)
@@ -62,6 +63,7 @@ var validChannels = map[string]bool{
 	string(model.ChannelLatest): true,
 }
 
+// Run starts the GUI HTTP server on the given host:port, optionally opening a browser.
 func Run(ctx context.Context, srv *Server, openBrowser bool, host string, port int) error {
 	host = strings.TrimSpace(host)
 	if host == "" {
