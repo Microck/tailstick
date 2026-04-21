@@ -4,6 +4,7 @@ package model
 
 import "time"
 
+// LeaseMode represents the lifecycle policy for a Tailscale device lease.
 type LeaseMode string
 
 const (
@@ -12,6 +13,7 @@ const (
 	LeaseModePermanent LeaseMode = "permanent"
 )
 
+// Channel selects between stable and latest Tailscale release tracks.
 type Channel string
 
 const (
@@ -19,6 +21,7 @@ const (
 	ChannelLatest Channel = "latest"
 )
 
+// LeaseStatus tracks the current phase of a lease in its lifecycle.
 type LeaseStatus string
 
 const (
@@ -28,6 +31,7 @@ const (
 	LeaseStatusCleaned       LeaseStatus = "cleaned"
 )
 
+// Config is the top-level tailstick configuration loaded from tailstick.config.json.
 type Config struct {
 	StableVersion       string   `json:"stableVersion"`
 	DefaultPreset       string   `json:"defaultPreset"`
@@ -36,6 +40,7 @@ type Config struct {
 	Presets             []Preset `json:"presets"`
 }
 
+// Preset defines a named enrollment profile with auth keys, tags, and install commands.
 type Preset struct {
 	ID                     string   `json:"id"`
 	Description            string   `json:"description"`
@@ -52,6 +57,7 @@ type Preset struct {
 	Cleanup                Cleanup  `json:"cleanup"`
 }
 
+// Install holds platform-specific install and uninstall command templates.
 type Install struct {
 	LinuxStable      []string `json:"linuxStable"`
 	LinuxLatest      []string `json:"linuxLatest"`
@@ -61,6 +67,7 @@ type Install struct {
 	WindowsUninstall []string `json:"windowsUninstall"`
 }
 
+// Cleanup configures post-lease device removal via the Tailscale API.
 type Cleanup struct {
 	Tailnet             string `json:"tailnet"`
 	APIKey              string `json:"apiKey"`
@@ -68,6 +75,7 @@ type Cleanup struct {
 	DeviceDeleteEnabled bool   `json:"deviceDeleteEnabled"`
 }
 
+// RuntimeOptions carries the user-supplied parameters for a single enrollment operation.
 type RuntimeOptions struct {
 	PresetID       string
 	Mode           LeaseMode
@@ -81,6 +89,7 @@ type RuntimeOptions struct {
 	Password       string
 }
 
+// LeaseRecord is the persistent record of a single lease, stored in state.json.
 type LeaseRecord struct {
 	LeaseID             string      `json:"leaseId"`
 	PresetID            string      `json:"presetId"`
@@ -104,12 +113,14 @@ type LeaseRecord struct {
 	EncryptedSecret     string      `json:"encryptedSecret,omitempty"`
 }
 
+// LocalState is the on-disk state file containing all lease records.
 type LocalState struct {
 	SchemaVersion int           `json:"schemaVersion"`
 	UpdatedAt     time.Time     `json:"updatedAt"`
 	Records       []LeaseRecord `json:"records"`
 }
 
+// AuditEntry represents a single line in the NDJSON audit log.
 type AuditEntry struct {
 	Timestamp  time.Time `json:"timestamp"`
 	LeaseID    string    `json:"leaseId"`
@@ -122,12 +133,14 @@ type AuditEntry struct {
 	Message    string    `json:"message"`
 }
 
+// TailscaleSelf holds identity fields from the local Tailscale node.
 type TailscaleSelf struct {
 	ID       string `json:"ID"`
 	DNSName  string `json:"DNSName"`
 	HostName string `json:"HostName"`
 }
 
+// TailscaleStatus is the parsed output of "tailscale status --json".
 type TailscaleStatus struct {
 	Self TailscaleSelf `json:"Self"`
 }

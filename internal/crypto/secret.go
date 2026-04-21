@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 )
 
+// Envelope holds the encrypted payload and metadata for AES-GCM sealed secrets.
 type Envelope struct {
 	Mode   string `json:"mode"`
 	Salt   string `json:"salt"`
@@ -24,6 +25,7 @@ type Envelope struct {
 	Cipher string `json:"cipher"`
 }
 
+// Encrypt encrypts plaintext using AES-GCM with a scrypt-derived key bound to the machine or a password.
 func Encrypt(plain, password, machineContext string) (string, error) {
 	key, salt, mode, err := deriveKey(password, machineContext)
 	if err != nil {
@@ -55,6 +57,7 @@ func Encrypt(plain, password, machineContext string) (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
+// Decrypt decodes and decrypts a base64-encoded Envelope back to plaintext.
 func Decrypt(encoded, password, machineContext string) (string, error) {
 	raw, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
