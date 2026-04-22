@@ -10,134 +10,164 @@
   <a href="https://github.com/Microck/tailstick/releases"><img src="https://img.shields.io/github/v/release/Microck/tailstick?display_name=tag&style=flat-square&label=release&color=000000" alt="release badge"></a>
   <a href="https://github.com/Microck/tailstick/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Microck/tailstick/ci.yml?branch=main&style=flat-square&label=ci&color=000000" alt="ci badge"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-mit-000000?style=flat-square" alt="license badge"></a>
+  <a href="https://goreportcard.com/report/github.com/Microck/tailstick"><img src="https://goreportcard.com/badge/github.com/Microck/tailstick?style=flat-square&color=000000" alt="go report card"></a>
+</p>
+
+<p align="center">
+  USB-delivered Tailscale enrollment for authorized sysadmin workflows.
+  One command surface for controlled onboarding, bounded lease modes, and automatic cleanup.
 </p>
 
 ---
 
-`tailstick` is a usb-delivered tailscale enrollment tool for authorized sysadmin workflows on windows and linux. it gives operators one command surface for controlled onboarding, bounded lease modes, and automatic cleanup that can continue after the usb is unplugged.
+## Table of Contents
 
+- [Why Tailstick](#why-tailstick)
+- [Requirements](#requirements)
+- [Quickstart](#quickstart)
+- [Platform Support](#platform-support)
+- [Command Surface](#command-surface)
+- [Lease Modes](#lease-modes)
+- [Environment Variables](#environment-variables)
+- [Examples](#examples)
+- [Building from Source](#building-from-source)
+- [Documentation](#documentation)
+- [License](#license)
 
-## why
+---
 
-if you need to get a field machine onto your tailnet without building a backend service around the process, tailstick gives you a controlled local workflow. it keeps the operator flow simple, supports session, timed, and permanent access, and keeps cleanup tied to the same lease record instead of spreading state across ad hoc scripts.
+## Why Tailstick
 
-## requirements
+If you need to get a field machine onto your tailnet without building a backend service around the process, Tailstick gives you a controlled local workflow. It keeps the operator flow simple, supports **session**, **timed**, and **permanent** access modes, and ties cleanup to the same lease record instead of spreading state across ad hoc scripts.
 
-- **elevated privileges** are required for enrollment and cleanup (`sudo` on linux, administrator on windows).
-- **linux**: debian or ubuntu with `systemd`. other distributions are not supported in the current release.
-- **windows**: standard windows with scheduled tasks available.
-- **go 1.22+** is required for building from source.
+**Key features:**
 
-## quickstart
+- **USB-delivered** — carry a single binary on a USB drive, no network infrastructure needed
+- **Three lease modes** — session (clean on reboot), timed (auto-expiry), permanent (no auto-cleanup)
+- **Automatic cleanup** — scheduled reconciliation agent removes leases when they expire
+- **CLI and GUI** — direct command flow or local browser-based wizard
+- **Password-gated presets** — restrict sensitive enrollment operations with operator passwords
+- **Audit logging** — NDJSON audit trail for every enrollment and cleanup action
+- **Cross-platform** — Linux (Debian/Ubuntu + systemd) and Windows support
 
-1. go to [releases](https://github.com/Microck/tailstick/releases/latest) and download the binary you want for your machine. use the cli if you want a direct command flow, or use the gui if you want the local browser flow. binaries are available for `linux/amd64`, `linux/arm64`, `windows/amd64`, and `windows/arm64`.
-2. put that binary in a working folder, then place a `tailstick.config.json` file next to it.
-3. write that config by hand from `configs/tailstick.config.example.json`, or use the optional [preset maker](https://tailstick.micr.dev/) if you want a faster way to build it.
-4. make sure you have the secrets your presets depend on. in most setups that means a tailscale auth key, a tailscale ephemeral auth key, and a tailscale api key for cleanup. if you want password-gated operator use, you also need an operator password.
-5. supply those values through environment variables such as `TAILSTICK_AUTH_KEY`, `TAILSTICK_EPHEMERAL_AUTH_KEY`, `TAILSTICK_API_KEY`, and `TAILSTICK_OPERATOR_PASSWORD`.
-6. run the binary once the config and secrets are in place.
+## Requirements
 
-for normal operator use, use the release binaries. building from source is only for development work.
+- **Elevated privileges** are required for enrollment and cleanup (`sudo` on Linux, Administrator on Windows).
+- **Linux**: Debian or Ubuntu with `systemd`. Other distributions are not supported in the current release.
+- **Windows**: Standard Windows with Scheduled Tasks available.
+- **Go 1.22+** is required for building from source.
+- **Tailscale auth keys** — an auth key, ephemeral auth key, and API key (see [Environment Variables](#environment-variables)).
 
-## platform support
+## Quickstart
 
-| platform | cli | gui | full lease runtime |
+1. Go to [releases](https://github.com/Microck/tailstick/releases/latest) and download the binary for your platform. Use the CLI for a direct command flow, or the GUI for the local browser wizard. Binaries are available for `linux/amd64`, `linux/arm64`, `windows/amd64`, and `windows/arm64`.
+2. Place the binary in a working folder alongside a `tailstick.config.json` file.
+3. Write the config by hand from [`configs/tailstick.config.example.json`](configs/tailstick.config.example.json), or use the optional [preset maker](https://tailstick.micr.dev/) for a faster setup.
+4. Ensure the secrets your presets require are available. Typically this means a Tailscale auth key, ephemeral auth key, and API key for cleanup. For password-gated operator use, also set an operator password.
+5. Supply secrets via environment variables: `TAILSTICK_AUTH_KEY`, `TAILSTICK_EPHEMERAL_AUTH_KEY`, `TAILSTICK_API_KEY`, and `TAILSTICK_OPERATOR_PASSWORD`.
+6. Run the binary once the config and secrets are in place.
+
+For normal operator use, use the release binaries. Building from source is only for development work.
+
+## Platform Support
+
+| Platform | CLI | GUI | Full Lease Runtime |
 | --- | --- | --- | --- |
-| linux (debian/ubuntu + `systemd`) | supported | supported | supported |
-| windows | supported | supported | supported |
+| Linux (Debian/Ubuntu + `systemd`) | ✅ Supported | ✅ Supported | ✅ Supported |
+| Windows | ✅ Supported | ✅ Supported | ✅ Supported |
 
-release binaries are built for `linux/amd64`, `linux/arm64`, `windows/amd64`, and `windows/arm64`.
+Release binaries are built for `linux/amd64`, `linux/arm64`, `windows/amd64`, and `windows/arm64`.
 
-## command surface
+## Command Surface
 
-| command | purpose |
+| Command | Purpose |
 | --- | --- |
-| `tailstick run` | enroll machine and create lease |
-| `tailstick agent` | run reconciliation loop (`--once` for a single pass) |
-| `tailstick cleanup` | force cleanup for one lease id |
-| `tailstick version` | print version |
+| `tailstick run` | Enroll machine and create lease |
+| `tailstick agent` | Run reconciliation loop (`--once` for a single pass) |
+| `tailstick cleanup` | Force cleanup for one lease ID |
+| `tailstick version` | Print version |
 
-### `run` flags
+### `run` Flags
 
-| flag | default | description |
+| Flag | Default | Description |
 | --- | --- | --- |
-| `--preset` | `""` | preset id from config |
-| `--mode` | `session` | lease mode: `session`, `timed`, or `permanent` |
-| `--channel` | `stable` | install channel: `stable` or `latest` |
-| `--days` | `3` | timed lease duration in days |
-| `--custom-days` | `0` | custom lease days (1–30, overrides `--days`) |
-| `--suffix` | `""` | optional device name suffix |
-| `--exit-node` | `""` | optional approved exit node |
-| `--allow-existing` | `false` | allow existing tailscale install |
-| `--non-interactive` | `false` | non-interactive mode |
-| `--password` | `""` | operator password (or set `TAILSTICK_OPERATOR_PASSWORD`) |
-| `--config` | `tailstick.config.json` | config file path |
-| `--state` | platform default | state file path |
-| `--audit` | `logs/tailstick-audit.ndjson` | audit log path |
-| `--log` | platform default | log file path |
-| `--dry-run` | `false` | print commands without executing |
+| `--preset` | `""` | Preset ID from config |
+| `--mode` | `session` | Lease mode: `session`, `timed`, or `permanent` |
+| `--channel` | `stable` | Install channel: `stable` or `latest` |
+| `--days` | `3` | Timed lease duration in days |
+| `--custom-days` | `0` | Custom lease days (1–30, overrides `--days`) |
+| `--suffix` | `""` | Optional device name suffix |
+| `--exit-node` | `""` | Optional approved exit node |
+| `--allow-existing` | `false` | Allow existing Tailscale install |
+| `--non-interactive` | `false` | Non-interactive mode |
+| `--password` | `""` | Operator password (or set `TAILSTICK_OPERATOR_PASSWORD`) |
+| `--config` | `tailstick.config.json` | Config file path |
+| `--state` | Platform default | State file path |
+| `--audit` | `logs/tailstick-audit.ndjson` | Audit log path |
+| `--log` | Platform default | Log file path |
+| `--dry-run` | `false` | Print commands without executing |
 
-### `agent` flags
+### `agent` Flags
 
-| flag | default | description |
+| Flag | Default | Description |
 | --- | --- | --- |
-| `--once` | `false` | run one reconciliation pass and exit |
-| `--interval` | `1m` | reconciliation interval |
+| `--once` | `false` | Run one reconciliation pass and exit |
+| `--interval` | `1m` | Reconciliation interval |
 
-the agent also accepts `--config`, `--state`, `--audit`, `--log`, and `--dry-run`.
+The agent also accepts `--config`, `--state`, `--audit`, `--log`, and `--dry-run`.
 
-### `cleanup` flags
+### `cleanup` Flags
 
-| flag | default | description |
+| Flag | Default | Description |
 | --- | --- | --- |
-| `--lease-id` | `""` | lease id to clean (required) |
+| `--lease-id` | `""` | Lease ID to clean (required) |
 
-the cleanup command also accepts `--config`, `--state`, `--audit`, `--log`, and `--dry-run`.
+The cleanup command also accepts `--config`, `--state`, `--audit`, `--log`, and `--dry-run`.
 
-### gui flags
+### GUI Flags
 
-the gui binary (`tailstick-linux-gui` / `tailstick-windows-gui`) starts a local browser-based setup wizard. in addition to the shared flags (`--config`, `--state`, `--audit`, `--log`, `--dry-run`):
+The GUI binary (`tailstick-linux-gui` / `tailstick-windows-gui`) starts a local browser-based setup wizard. In addition to the shared flags (`--config`, `--state`, `--audit`, `--log`, `--dry-run`):
 
-| flag | default | description |
+| Flag | Default | Description |
 | --- | --- | --- |
-| `--host` | `127.0.0.1` | bind host |
-| `--port` | `0` | bind port (`0` picks an ephemeral port) |
-| `--open-browser` | `true` | open browser automatically |
+| `--host` | `127.0.0.1` | Bind host |
+| `--port` | `0` | Bind port (`0` picks an ephemeral port) |
+| `--open-browser` | `true` | Open browser automatically |
 
-## lease modes
+## Lease Modes
 
-| mode | behavior |
+| Mode | Behavior |
 | --- | --- |
-| `session` | cleaned after reboot/shutdown detection |
-| `timed` | cleaned when expiry is reached (set duration with `--days` or `--custom-days`) |
-| `permanent` | leaves normal tailscale install and no automatic cleanup |
+| `session` | Cleaned after reboot/shutdown detection |
+| `timed` | Cleaned when expiry is reached (set duration with `--days` or `--custom-days`) |
+| `permanent` | Leaves normal Tailscale install with no automatic cleanup |
 
-for lease modes, tailstick installs local scheduling:
+For lease modes, Tailstick installs local scheduling:
 
-- linux: `tailstick-agent.service` + `tailstick-agent.timer`
-- windows: `TailStickAgent-Startup` + `TailStickAgent-Periodic`
+- **Linux**: `tailstick-agent.service` + `tailstick-agent.timer`
+- **Windows**: `TailStickAgent-Startup` + `TailStickAgent-Periodic`
 
-the scheduled command runs from a machine-local binary copy:
+The scheduled command runs from a machine-local binary copy:
 
-- linux: `/var/lib/tailstick/tailstick-agent`
-- windows: `%ProgramData%\TailStick\tailstick-agent.exe`
+- **Linux**: `/var/lib/tailstick/tailstick-agent`
+- **Windows**: `%ProgramData%\TailStick\tailstick-agent.exe`
 
-## environment variables
+## Environment Variables
 
-secrets are resolved from environment variables. the config file supports `authKeyEnv`, `ephemeralAuthKeyEnv`, and `apiKeyEnv` fields that name the env var to read. common variables:
+Secrets are resolved from environment variables. The config file supports `authKeyEnv`, `ephemeralAuthKeyEnv`, and `apiKeyEnv` fields that name the env var to read.
 
-| variable | purpose |
+| Variable | Purpose |
 | --- | --- |
-| `TAILSTICK_AUTH_KEY` | tailscale auth key |
-| `TAILSTICK_EPHEMERAL_AUTH_KEY` | tailscale ephemeral auth key |
-| `TAILSTICK_API_KEY` | tailscale api key for cleanup |
-| `TAILSTICK_OPERATOR_PASSWORD` | operator password for gated presets |
+| `TAILSTICK_AUTH_KEY` | Tailscale auth key |
+| `TAILSTICK_EPHEMERAL_AUTH_KEY` | Tailscale ephemeral auth key |
+| `TAILSTICK_API_KEY` | Tailscale API key for cleanup |
+| `TAILSTICK_OPERATOR_PASSWORD` | Operator password for gated presets |
 
-see `.env.example` for a template.
+See [`.env.example`](.env.example) for a template.
 
-## examples
+## Examples
 
-timed lease with advanced custom duration:
+Timed lease with custom duration:
 
 ```bash
 ./tailstick-linux-cli run \
@@ -148,7 +178,7 @@ timed lease with advanced custom duration:
   --allow-existing
 ```
 
-session lease with approved exit node:
+Session lease with approved exit node:
 
 ```bash
 ./tailstick-linux-cli run \
@@ -158,48 +188,50 @@ session lease with approved exit node:
   --channel latest
 ```
 
-manual cleanup:
+Manual cleanup:
 
 ```bash
 ./tailstick-linux-cli cleanup --lease-id <lease-id>
 ```
 
-single agent pass:
+Single agent pass:
 
 ```bash
 ./tailstick-linux-cli agent --once
 ```
 
-## building from source
+## Building from Source
 
 ```bash
 go build ./cmd/tailstick-linux-cli
 go build ./cmd/tailstick-linux-gui
 ```
 
-cross-compile all targets:
+Cross-compile all targets:
 
 ```bash
 make build-all
 ```
 
-run tests:
+Run tests:
 
 ```bash
 go test ./...
 ```
 
-see the `Makefile` for additional targets (`fmt`, `vet`, `sandbox-linux`, `icons`).
+See the [`Makefile`](Makefile) for additional targets (`fmt`, `vet`, `sandbox-linux`, `icons`).
 
-## documentation
+## Documentation
 
-- [architecture](docs/architecture.md)
-- [configuration](docs/configuration.md)
-- [operations](docs/operations.md)
-- [testing](docs/testing.md)
-- [release runbook](docs/release-runbook.md)
-- [contributing](CONTRIBUTING.md)
+| Document | Description |
+| --- | --- |
+| [Architecture](docs/architecture.md) | System design and component overview |
+| [Configuration](docs/configuration.md) | Config file format and preset options |
+| [Operations](docs/operations.md) | Deployment, monitoring, and troubleshooting |
+| [Testing](docs/testing.md) | Test strategy and running the test suite |
+| [Release Runbook](docs/release-runbook.md) | Steps for cutting a new release |
+| [Contributing](CONTRIBUTING.md) | How to contribute to Tailstick |
 
-## license
+## License
 
-[mit license](LICENSE)
+[MIT License](LICENSE)
