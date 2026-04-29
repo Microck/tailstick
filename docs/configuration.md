@@ -2,7 +2,7 @@
 
 TailStick config is JSON.
 
-Example: [configs/tailstick.config.example.json](/home/ubuntu/workspace/tailscale-usb/configs/tailstick.config.example.json)
+Example: [configs/tailstick.config.example.json](../configs/tailstick.config.example.json)
 
 ## Top-Level
 

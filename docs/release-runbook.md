@@ -46,10 +46,14 @@ git push origin v1.0.0
 
 Tag push triggers the release workflow which builds and uploads:
 
-- `tailstick-linux-amd64.tar.gz`
-- `tailstick-linux-arm64.tar.gz`
-- `tailstick-windows-amd64.tar.gz`
-- `tailstick-windows-arm64.tar.gz`
+- `tailstick-cli-linux-amd64`
+- `tailstick-gui-linux-amd64`
+- `tailstick-cli-linux-arm64`
+- `tailstick-gui-linux-arm64`
+- `tailstick-cli-windows-amd64.exe`
+- `tailstick-gui-windows-amd64.exe`
+- `tailstick-cli-windows-arm64.exe`
+- `tailstick-gui-windows-arm64.exe`
 
 ## Verify Release
 
@@ -68,7 +72,7 @@ gh release view v1.0.0 -R Microck/tailstick --json assets,url
 ```
 
 3. Optional post-release smoke:
-- Download one Linux and one Windows archive from the release and verify expected binaries are present.
+- Download one Linux and one Windows binary and verify basic execution (`tailstick version`).
 
 ## Rollback
 

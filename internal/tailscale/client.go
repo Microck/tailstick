@@ -116,7 +116,7 @@ func (c Client) Status(ctx context.Context) (model.TailscaleStatus, error) {
 	}
 	selfRaw, ok := root["Self"].(map[string]any)
 	if !ok {
-		return model.TailscaleStatus{}, fmt.Errorf("status json missing Self object")
+		return model.TailscaleStatus{}, fmt.Errorf("parse tailscale status: response JSON missing required Self object")
 	}
 	var st model.TailscaleStatus
 	if v, ok := selfRaw["ID"].(string); ok {
@@ -178,15 +178,15 @@ func authKeyArg(auth string) (string, func(), error) {
 	cleanup := func() {
 		_ = os.Remove(path)
 	}
-	if _, err := f.WriteString(auth); err != nil {
-		cleanup()
-		_ = f.Close()
-		return "", func() {}, fmt.Errorf("write auth key temp file: %w", err)
-	}
 	if err := f.Chmod(0o600); err != nil && runtime.GOOS != "windows" {
 		cleanup()
 		_ = f.Close()
 		return "", func() {}, fmt.Errorf("chmod auth key temp file: %w", err)
+	}
+	if _, err := f.WriteString(auth); err != nil {
+		cleanup()
+		_ = f.Close()
+		return "", func() {}, fmt.Errorf("write auth key temp file: %w", err)
 	}
 	if err := f.Close(); err != nil {
 		cleanup()
@@ -255,7 +255,7 @@ func ParseDurationDays(mode model.LeaseMode, defaultDays, customDays int) (int, 
 				return defaultDays, nil
 			}
 		}
-		return 0, fmt.Errorf("timed lease requires days in {1,3,7} or custom-days in [1,30]")
+		return 0, fmt.Errorf("timed lease requires days in {1,3,7} or custom-days in [1,30]; got %d", defaultDays)
 	default:
 		return 0, fmt.Errorf("invalid lease mode %s", mode)
 	}

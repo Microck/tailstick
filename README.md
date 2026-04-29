@@ -26,7 +26,7 @@ if you need to get a field machine onto your tailnet without building a backend 
 - **elevated privileges** are required for enrollment and cleanup (`sudo` on linux, administrator on windows).
 - **linux**: debian or ubuntu with `systemd`. other distributions are not supported in the current release.
 - **windows**: standard windows with scheduled tasks available.
-- **go 1.22+** is required for building from source.
+- **go 1.25.6+** is required for building from source.
 
 ## quickstart
 
@@ -64,7 +64,7 @@ release binaries are built for `linux/amd64`, `linux/arm64`, `windows/amd64`, an
 | `--preset` | `""` | preset id from config |
 | `--mode` | `session` | lease mode: `session`, `timed`, or `permanent` |
 | `--channel` | `stable` | install channel: `stable` or `latest` |
-| `--days` | `3` | timed lease duration in days |
+| `--days` | `3` | timed lease duration in days (`1`, `3`, or `7`) |
 | `--custom-days` | `0` | custom lease days (1–30, overrides `--days`) |
 | `--suffix` | `""` | optional device name suffix |
 | `--exit-node` | `""` | optional approved exit node |
@@ -73,7 +73,7 @@ release binaries are built for `linux/amd64`, `linux/arm64`, `windows/amd64`, an
 | `--password` | `""` | operator password (or set `TAILSTICK_OPERATOR_PASSWORD`) |
 | `--config` | `tailstick.config.json` | config file path |
 | `--state` | platform default | state file path |
-| `--audit` | `logs/tailstick-audit.ndjson` | audit log path |
+| `--audit` | `logs/tailstick-audit.ndjson` | audit log path (relative to config directory) |
 | `--log` | platform default | log file path |
 | `--dry-run` | `false` | print commands without executing |
 
@@ -103,6 +103,8 @@ the gui binary (`tailstick-linux-gui` / `tailstick-windows-gui`) starts a local 
 | `--host` | `127.0.0.1` | bind host |
 | `--port` | `0` | bind port (`0` picks an ephemeral port) |
 | `--open-browser` | `true` | open browser automatically |
+
+`--non-interactive` applies to `tailstick run` only.
 
 ## lease modes
 
