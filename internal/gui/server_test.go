@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -112,6 +113,11 @@ func TestEnrollRejectsInvalidModeAndNegativeDurations(t *testing.T) {
 			body: `{"mode":"timed","channel":"stable","customDays":-1}`,
 			want: `customDays must be non-negative`,
 		},
+		{
+			name: "timed mode with zero days",
+			body: `{"mode":"timed","channel":"stable","days":0,"customDays":0}`,
+			want: `timed mode requires days > 0`,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/enroll", bytes.NewBufferString(tc.body))
@@ -128,5 +134,49 @@ func TestEnrollRejectsInvalidModeAndNegativeDurations(t *testing.T) {
 				t.Fatalf("got error %v want substring %q", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestPresetsLoadErrorDoesNotLeakInternalPath(t *testing.T) {
+	srv := &Server{ConfigPath: "/path/that/does/not/exist"}
+	req := httptest.NewRequest(http.MethodGet, "/api/presets", nil)
+	rec := httptest.NewRecorder()
+	srv.presets(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("got status %d want 500", rec.Code)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "failed to load presets") {
+		t.Fatalf("got body %q want generic presets error", body)
+	}
+	if strings.Contains(body, "/path/that/does/not/exist") {
+		t.Fatalf("response leaked config path: %q", body)
+	}
+}
+
+func TestEnrollFailureReturnsGenericError(t *testing.T) {
+	srv := &Server{
+		EnrollFn: func(context.Context, model.RuntimeOptions) (model.LeaseRecord, error) {
+			return model.LeaseRecord{}, fmt.Errorf("secret details should not be returned")
+		},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/enroll", bytes.NewBufferString(`{"mode":"session","channel":"stable"}`))
+	rec := httptest.NewRecorder()
+	srv.enroll(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("got status %d want 400", rec.Code)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	got, _ := payload["error"].(string)
+	if got != "enrollment failed" {
+		t.Fatalf("got error %q want enrollment failed", got)
+	}
+	if strings.Contains(rec.Body.String(), "secret details") {
+		t.Fatalf("response leaked internal details: %q", rec.Body.String())
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -62,6 +63,8 @@ var validChannels = map[string]bool{
 	string(model.ChannelLatest): true,
 }
 
+const maxEnrollRequestBytes = 64 * 1024
+
 func Run(ctx context.Context, srv *Server, openBrowser bool, host string, port int) error {
 	host = strings.TrimSpace(host)
 	if host == "" {
@@ -112,7 +115,10 @@ func (s *Server) presets(w http.ResponseWriter, r *http.Request) {
 	}
 	cfg, err := config.Load(s.ConfigPath)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if s.Logf != nil {
+			s.Logf("load presets config: %v", err)
+		}
+		http.Error(w, "failed to load presets", http.StatusInternalServerError)
 		return
 	}
 	summaries := make([]presetSummary, len(cfg.Presets))
@@ -134,8 +140,15 @@ func (s *Server) enroll(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxEnrollRequestBytes)
 	var req enrollRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	dec := json.NewDecoder(io.LimitReader(r.Body, maxEnrollRequestBytes))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
 		http.Error(w, "invalid json body", http.StatusBadRequest)
 		return
 	}
@@ -155,6 +168,10 @@ func (s *Server) enroll(w http.ResponseWriter, r *http.Request) {
 		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "customDays must be non-negative"})
 		return
 	}
+	if req.Mode == string(model.LeaseModeTimed) && req.CustomDays == 0 && req.Days == 0 {
+		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "timed mode requires days > 0 or customDays > 0"})
+		return
+	}
 	password := strings.TrimSpace(req.Password)
 	if password == "" {
 		password = strings.TrimSpace(os.Getenv("TAILSTICK_OPERATOR_PASSWORD"))
@@ -171,16 +188,22 @@ func (s *Server) enroll(w http.ResponseWriter, r *http.Request) {
 		Password:      password,
 	})
 	if err != nil {
-		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": err.Error()})
+		if s.Logf != nil {
+			s.Logf("enroll request failed: %v", err)
+		}
+		writeJSONCode(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "enrollment failed"})
 		return
 	}
-	writeJSON(w, map[string]any{
+	response := map[string]any{
 		"ok":         true,
 		"leaseId":    rec.LeaseID,
 		"deviceName": rec.DeviceName,
 		"mode":       rec.Mode,
-		"expiresAt":  rec.ExpiresAt,
-	})
+	}
+	if rec.ExpiresAt != nil {
+		response["expiresAt"] = rec.ExpiresAt
+	}
+	writeJSON(w, response)
 }
 
 func (s *Server) index(w http.ResponseWriter, r *http.Request) {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -124,6 +125,66 @@ done
 	}
 	if _, err := os.Stat(keyPath); !os.IsNotExist(err) {
 		t.Fatalf("expected auth key temp file to be removed, stat err=%v", err)
+	}
+}
+
+func TestAuthKeyArgCreatesRestrictedTempFile(t *testing.T) {
+	arg, cleanup, err := authKeyArg("tskey-auth-secret")
+	if err != nil {
+		t.Fatalf("authKeyArg: %v", err)
+	}
+	defer cleanup()
+
+	const prefix = "--auth-key=file:"
+	if !strings.HasPrefix(arg, prefix) {
+		t.Fatalf("got arg %q want prefix %q", arg, prefix)
+	}
+	path := strings.TrimPrefix(arg, prefix)
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat temp file: %v", err)
+	}
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+		t.Fatalf("got file mode %o want 600", info.Mode().Perm())
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read temp file: %v", err)
+	}
+	if string(body) != "tskey-auth-secret" {
+		t.Fatalf("got auth key body %q", string(body))
+	}
+}
+
+func TestParseDurationDaysIncludesInvalidValue(t *testing.T) {
+	_, err := ParseDurationDays(model.LeaseModeTimed, 2, 0)
+	if err == nil {
+		t.Fatal("expected validation error")
+	}
+	if !strings.Contains(err.Error(), "got 2") {
+		t.Fatalf("got error %q want invalid value context", err)
+	}
+}
+
+func TestStatusFallbackErrorIncludesParseContext(t *testing.T) {
+	root := t.TempDir()
+	scriptPath := filepath.Join(root, "tailscale")
+	script := `#!/bin/sh
+set -eu
+echo '{"Self":"bad-shape"}'
+`
+	if err := os.WriteFile(scriptPath, []byte(script), 0o755); err != nil {
+		t.Fatalf("write fake tailscale: %v", err)
+	}
+	t.Setenv("PATH", root+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	client := Client{Runner: platform.Runner{}}
+	_, err := client.Status(context.Background())
+	if err == nil {
+		t.Fatal("expected status parse error")
+	}
+	if !strings.Contains(err.Error(), "parse tailscale status") {
+		t.Fatalf("got error %q want parse context", err)
 	}
 }
 
