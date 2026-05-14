@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tailstick/tailstick/internal/config"
-	"github.com/tailstick/tailstick/internal/model"
+	"github.com/Microck/tailstick/internal/config"
+	"github.com/Microck/tailstick/internal/model"
 )
 
 //go:embed index.html tailstick-favicon.png

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/tailstick/tailstick/internal/gui"
+	"github.com/Microck/tailstick/internal/gui"
 )
 
 func RunGUI(args []string, rt Runtime) int {

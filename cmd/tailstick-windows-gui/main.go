@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/tailstick/tailstick/internal/app"
+	"github.com/Microck/tailstick/internal/app"
 )
 
 func main() {

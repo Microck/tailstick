@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tailstick/tailstick/internal/model"
+	"github.com/Microck/tailstick/internal/model"
 )
 
 func TestPresetsRedactsSecretsAndOnlyAllowsGet(t *testing.T) {

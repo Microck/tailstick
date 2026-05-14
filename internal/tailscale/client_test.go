@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tailstick/tailstick/internal/model"
-	"github.com/tailstick/tailstick/internal/platform"
+	"github.com/Microck/tailstick/internal/model"
+	"github.com/Microck/tailstick/internal/platform"
 )
 
 func TestDeleteDeviceTreatsNotFoundAsAlreadyDeleted(t *testing.T) {
