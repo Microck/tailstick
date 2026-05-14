@@ -4,7 +4,7 @@ Thanks for your interest in contributing. This guide covers the basics.
 
 ## Development Setup
 
-1. **Go 1.25.6+** is required.
+1. **Go 1.25.0+** is required.
 2. Clone the repository and build:
    ```bash
    go build ./...
