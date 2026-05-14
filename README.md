@@ -26,7 +26,7 @@ if you need to get a field machine onto your tailnet without building a backend 
 - **elevated privileges** are required for enrollment and cleanup (`sudo` on linux, administrator on windows).
 - **linux**: debian or ubuntu with `systemd`. other distributions are not supported in the current release.
 - **windows**: standard windows with scheduled tasks available.
-- **go 1.25.6+** is required for building from source.
+- **go 1.25.0+** is required for building from source.
 
 ## quickstart
 

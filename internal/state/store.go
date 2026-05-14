@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/tailstick/tailstick/internal/model"
+	"github.com/Microck/tailstick/internal/model"
 )
 
 func Load(path string) (model.LocalState, error) {

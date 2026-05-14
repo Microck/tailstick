@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	intcrypto "github.com/tailstick/tailstick/internal/crypto"
-	"github.com/tailstick/tailstick/internal/logging"
-	"github.com/tailstick/tailstick/internal/model"
-	"github.com/tailstick/tailstick/internal/platform"
-	"github.com/tailstick/tailstick/internal/state"
-	"github.com/tailstick/tailstick/internal/tailscale"
+	intcrypto "github.com/Microck/tailstick/internal/crypto"
+	"github.com/Microck/tailstick/internal/logging"
+	"github.com/Microck/tailstick/internal/model"
+	"github.com/Microck/tailstick/internal/platform"
+	"github.com/Microck/tailstick/internal/state"
+	"github.com/Microck/tailstick/internal/tailscale"
 )
 
 func TestBuildDeviceName(t *testing.T) {

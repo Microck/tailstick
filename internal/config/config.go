@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/tailstick/tailstick/internal/model"
+	"github.com/Microck/tailstick/internal/model"
 )
 
 const (

@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tailstick/tailstick/internal/model"
+	"github.com/Microck/tailstick/internal/model"
 )
 
 const Version = "1.0.0"
