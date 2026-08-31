@@ -1,0 +1,13 @@
+# Tailstick
+
+> Tailstick is a USB-delivered Tailscale enrollment tool with timed leases and cleanup.
+
+## Start here
+
+- [Tailstick](https://tailstick.micr.dev/): Project site.
+- [GitHub repository](https://github.com/Microck/tailstick): Source code and releases.
+- [Microck](https://micr.dev/): Personal homepage.
+
+## Guidance
+
+Use the repository and project site as the source of truth for supported platforms, setup, and security behavior.
